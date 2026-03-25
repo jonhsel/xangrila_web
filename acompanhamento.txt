@@ -1,0 +1,17 @@
+# ACOMPANHAMENTO DE FASES - XANGRILA WEB
+================================================
+
+## ✅ CHECKLIST DA FASE 1
+
+Marque cada item conforme completar:
+
+- [x] Node.js 18+ instalado
+- [x] Projeto Next.js criado
+- [x] Todas as dependências instaladas
+- [x] Shadcn/ui configurado
+- [x] Estrutura de pastas criada
+- [x] Arquivo .env.local criado
+- [x] Arquivos de utilidades criados
+- [x] Git inicializado
+- [x] Servidor rodando em http://localhost:3000
+

@@ -15,3 +15,4 @@ Marque cada item conforme completar:
 - [x] Git inicializado
 - [x] Servidor rodando em http://localhost:3000
 
+## ✅ CHECKLIST DA FASE 2

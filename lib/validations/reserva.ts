@@ -31,9 +31,7 @@ export const CAPACIDADE_MAXIMA: Record<string, number> = {
 
 export const reservaSchema = z.object({
   // --- Datas ---
-  dataCheckin: z.date({
-    required_error: 'Data de check-in é obrigatória',
-  }).refine((date) => {
+  dataCheckin: z.date().refine((date) => {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     return date >= hoje;
@@ -41,19 +39,13 @@ export const reservaSchema = z.object({
     message: 'Data de check-in não pode ser no passado',
   }),
 
-  dataCheckout: z.date({
-    required_error: 'Data de check-out é obrigatória',
-  }),
+  dataCheckout: z.date(),
 
   // --- Pessoas ---
-  pessoas: z.number({
-    required_error: 'Número de pessoas é obrigatório',
-  }).min(1, 'Mínimo de 1 pessoa').max(6, 'Máximo de 6 pessoas'),
+  pessoas: z.number().min(1, 'Mínimo de 1 pessoa').max(6, 'Máximo de 6 pessoas'),
 
   // --- Tipo de quarto ---
-  tipoQuarto: z.enum(TIPOS_QUARTO, {
-    required_error: 'Selecione o tipo de quarto',
-  }),
+  tipoQuarto: z.enum(TIPOS_QUARTO),
 
   // --- Dados do cliente ---
   nomeCliente: z.string()

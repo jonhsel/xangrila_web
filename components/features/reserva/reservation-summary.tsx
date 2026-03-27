@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Calendar,
   BedDouble,
@@ -11,7 +12,6 @@ import {
   Star,
   MessageSquare,
   User,
-  Copy,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -42,67 +42,11 @@ interface ReservaResponse {
 }
 
 // ============================================
-// TELA DE SUCESSO
-// ============================================
-
-function TelaConfirmacao({ reserva }: { reserva: ReservaResponse }) {
-  const { valorTotal, valorSinal, reservaId } = reserva;
-
-  function copiarCodigo() {
-    navigator.clipboard.writeText(reservaId);
-    toast.success('Código copiado!');
-  }
-
-  return (
-    <div className="mx-auto max-w-lg space-y-6 py-8 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-        <CheckCircle className="h-8 w-8 text-green-600" />
-      </div>
-
-      <div>
-        <h2 className="text-2xl font-bold text-green-700">Reserva solicitada!</h2>
-        <p className="mt-2 text-muted-foreground">
-          Sua reserva foi criada com sucesso. Para confirmar, efetue o pagamento do sinal.
-        </p>
-      </div>
-
-      <Card>
-        <CardContent className="space-y-4 py-6">
-          <div>
-            <p className="text-sm text-muted-foreground">Código da reserva</p>
-            <div className="flex items-center justify-center gap-2 mt-1">
-              <span className="text-xl font-bold tracking-widest">{reservaId}</span>
-              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={copiarCodigo}>
-                <Copy className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 border-t pt-4 text-sm">
-            <div>
-              <p className="text-muted-foreground">Valor total</p>
-              <p className="font-semibold">{formatarMoeda(valorTotal)}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground">Sinal (50%)</p>
-              <p className="font-semibold text-primary">{formatarMoeda(valorSinal)}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <p className="text-sm text-muted-foreground">
-        Em breve entraremos em contato via WhatsApp com as instruções de pagamento PIX.
-      </p>
-    </div>
-  );
-}
-
-// ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
 
 export function ReservationSummary() {
+  const router = useRouter();
   const {
     dataCheckin,
     dataCheckout,
@@ -119,10 +63,11 @@ export function ReservationSummary() {
     setObservacoes,
     setClienteNome,
     setStep,
+    setReservaId,
+    setDadosPagamento,
   } = useReserva();
 
   const [confirmando, setConfirmando] = useState(false);
-  const [reservaConfirmada, setReservaConfirmada] = useState<ReservaResponse | null>(null);
   const [nomeEditado, setNomeEditado] = useState(clienteNome ?? '');
 
   // Verifica se o nome é apenas o telefone (cliente novo)
@@ -166,16 +111,15 @@ export function ReservationSummary() {
       }
 
       const dados: ReservaResponse = await resp.json();
-      setReservaConfirmada(dados);
+      // Salvar dados de pagamento na store e redirecionar para PIX
+      setReservaId(dados.reservaId);
+      setDadosPagamento(dados.valorSinal, dados.expiraEm);
+      router.push(`/reservar/pagamento?id=${dados.reservaId}`);
     } catch {
       toast.error('Erro ao criar reserva. Tente novamente.');
     } finally {
       setConfirmando(false);
     }
-  }
-
-  if (reservaConfirmada) {
-    return <TelaConfirmacao reserva={reservaConfirmada} />;
   }
 
   const valorSinal = valorTotal * 0.5;

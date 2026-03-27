@@ -36,6 +36,8 @@ interface ReservaState {
   observacoes: string;
   step: number;
   reservaId: string | null;
+  valorSinal: number;
+  expiraEm: string | null;
 }
 
 interface ReservaActions {
@@ -58,6 +60,7 @@ interface ReservaActions {
   setClienteNome: (nome: string) => void;
   setStep: (step: number) => void;
   setReservaId: (id: string) => void;
+  setDadosPagamento: (valorSinal: number, expiraEm: string) => void;
   reset: () => void;
 }
 
@@ -78,6 +81,8 @@ const estadoInicial: ReservaState = {
   observacoes: '',
   step: 1,
   reservaId: null,
+  valorSinal: 0,
+  expiraEm: null,
 };
 
 // ============================================
@@ -105,6 +110,8 @@ export const useReserva = create<ReservaState & ReservaActions>()(
       setStep: (step) => set({ step }),
 
       setReservaId: (reservaId) => set({ reservaId }),
+
+      setDadosPagamento: (valorSinal, expiraEm) => set({ valorSinal, expiraEm }),
 
       reset: () => set(estadoInicial),
     }),

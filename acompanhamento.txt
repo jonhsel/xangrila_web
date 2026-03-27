@@ -222,15 +222,33 @@ Etapa	Status
 Fase 5 concluída. Quer partir para a Fase 6 (Pagamentos PIX via Mercado Pago)?
 
 ## ✅ CHECKLIST DA FASE 6
-[ ] npm install mercadopago executado
-[ ] npm list qrcode.react confirma instalação
-[ ] types/pagamentos.ts criado com PixResponse, WebhookMercadoPago, PaymentStatus
-[ ] lib/api/mercadopago/client.ts criado (SEM idempotencyKey fixo)
-[ ] app/api/pagamentos/pix/gerar/route.ts funcional
-[ ] app/api/webhooks/mercadopago/route.ts funcional (público, sem auth)
-[ ] components/features/reserva/pix-payment.tsx com QR Code + timer + polling
-[ ] app/reservar/pagamento/page.tsx renderiza PixPayment
-[ ] app/reservar/confirmacao/page.tsx com resumo e sucesso
-[ ] npm run build sem erros TypeScript
+
+[x] npm install mercadopago executado — mercadopago@2.12.0 instalado
+[x] npm list qrcode.react confirma instalação — qrcode.react@4.2.0 já estava no projeto
+[x] types/pagamentos.ts criado com PixResponse, WebhookMercadoPago, PaymentStatus
+[x] lib/api/mercadopago/client.ts criado (SEM idempotencyKey fixo, timeout 10s)
+[x] app/api/pagamentos/pix/gerar/route.ts funcional (com auth + validação de pertencimento)
+[x] app/api/webhooks/mercadopago/route.ts funcional (público, sem auth, resposta 200 imediata)
+[x] components/features/reserva/pix-payment.tsx com QR Code + timer + polling (5s)
+[x] app/reservar/pagamento/page.tsx renderiza PixPayment (com Suspense)
+[x] app/reservar/confirmacao/page.tsx com resumo e sucesso (com Suspense)
+[x] npm run build sem erros TypeScript ✅ Compiled successfully
+
+Arquivos adicionais atualizados:
+[x] lib/hooks/use-reserva.ts — adicionados campos valorSinal, expiraEm e action setDadosPagamento()
+[x] components/features/reserva/reservation-summary.tsx — redireciona para /reservar/pagamento após criar reserva
+[x] .env.local — adicionadas variáveis MERCADOPAGO_ACCESS_TOKEN e NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY (placeholders TEST-)
+
+Correções aplicadas durante a implementação:
+* ClienteRow não possui email_cliente — geração de email temp usa reserva-{id}@pousadaxangrila.temp
+* Supabase JS v2.100+ requer (admin.from('tabela') as any).update() — padrão aplicado em todas as queries de escrita
+* useSearchParams() requer Suspense boundary em Next.js — ambas as páginas novas wrappadas em <Suspense>
+
+⚠️ Pendente (testes manuais — requer credenciais reais e ngrok):
+[ ] Configurar MERCADOPAGO_ACCESS_TOKEN com credencial TEST- real no .env.local
 [ ] Teste manual: QR Code aparece e código é copiável
 [ ] Teste manual: curl no webhook atualiza o banco
+[ ] Configurar ngrok para testes de webhook em desenvolvimento
+
+Fase 6 concluída. Próxima: Fase 7 — Área do Cliente (auth SMS/OTP, minhas-reservas).
+

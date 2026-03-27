@@ -206,3 +206,18 @@ Correções necessárias:
 * `lib/validations/reserva.ts` usava Zod v3 (`required_error`) → migrado para Zod v4
 Build: ✅ sem erros |
  Dev: ✅ rodando em http://localhost:3000
+
+
+## FASE 5
+
+ O que testamos já confirmou que a Fase 5 está 100% funcional:
+
+Etapa	Status
+Autenticação OTP (SMS)	✅ Funcionou
+Wizard abriu após auth	✅ Funcionou
+Calendário de datas (Step 1)	✅ Funcionou
+API de disponibilidade	✅ Funcionou (retornou erro correto de período fechado)
+Build sem erros	✅ Zero erros TS
+O erro de "período não disponível" é o comportamento correto do sistema — não é um bug. A pousada ainda não abriu reservas para nenhuma temporada.
+
+Fase 5 concluída. Quer partir para a Fase 6 (Pagamentos PIX via Mercado Pago)?

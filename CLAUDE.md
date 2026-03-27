@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 4 estão concluídas. As fases 5 a 9 estão em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 5 estão concluídas. As fases 6 a 9 estão em andamento.
 
 ---
 
@@ -63,7 +63,7 @@ app/globals.css
 | 2 | Configuração do Supabase (migrations, RLS, triggers) | ✅ Concluída |
 | 3 | Código Base (types, utils, supabase clients) | ✅ Concluída |
 | 4 | Landing Page e UI Pública | ✅ Concluída |
-| 5 | Sistema de Reservas (wizard multi-step) | 🚧 Em andamento |
+| 5 | Sistema de Reservas (wizard multi-step + auth OTP) | ✅ Concluída |
 | 6 | Pagamentos PIX via Mercado Pago | 🚧 Em andamento |
 | 7 | Área do Cliente (auth SMS/OTP, minhas-reservas) | 🚧 Em andamento |
 | 8 | Painel Administrativo (dashboard, gestão) | 🚧 Em andamento |
@@ -71,7 +71,7 @@ app/globals.css
 
 ---
 
-## O que já existe no projeto (Fases 1–4)
+## O que já existe no projeto (Fases 1–5)
 
 ### Estrutura de pastas atual
 
@@ -85,21 +85,42 @@ xangrila_web/
 │   │   ├── day-use/page.tsx          # Placeholder + CTA
 │   │   ├── loading.tsx               # Skeleton animate-pulse
 │   │   └── error.tsx                 # Com reset()
-│   ├── layout.tsx                    # Layout raiz (substituído na Fase 4)
+│   ├── reservar/
+│   │   ├── layout.tsx                # Header + Footer
+│   │   └── page.tsx                  # Auth gate + wizard (client component)
+│   ├── api/
+│   │   ├── auth/vincular-cliente/
+│   │   │   └── route.ts              # POST — busca/cria cliente após OTP
+│   │   ├── disponibilidade/
+│   │   │   └── route.ts              # GET — disponibilidade + preços (público)
+│   │   └── reservas/
+│   │       ├── criar/
+│   │       │   └── route.ts          # POST — cria reserva (autenticado)
+│   │       └── [id]/status/
+│   │           └── route.ts          # GET — status da reserva (autenticado)
+│   ├── layout.tsx                    # Layout raiz
 │   └── not-found.tsx                 # 404 customizado
 ├── components/
-│   ├── ui/                           # 12 componentes shadcn (inclui textarea)
+│   ├── ui/                           # 14 componentes shadcn (badge e skeleton adicionados na Fase 5)
 │   ├── layout/
 │   │   ├── header.tsx                # Responsivo + aria
 │   │   └── footer.tsx                # 4 colunas
 │   └── features/
 │       ├── home-content.tsx          # Landing page completa
-│       └── whatsapp-button.tsx       # Botão flutuante
+│       ├── whatsapp-button.tsx       # Botão flutuante
+│       └── reserva/
+│           ├── auth-gate.tsx         # Tela OTP (envio + verificação + timer)
+│           ├── step-indicator.tsx    # Barra de progresso 3 steps
+│           ├── date-selector.tsx     # Step 1 — calendário de intervalo
+│           ├── room-selector.tsx     # Step 2 — cards de quartos + preços
+│           └── reservation-summary.tsx # Step 3 — resumo + confirmar
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts                 # @supabase/ssr — NÃO alterar
 │   │   ├── server.ts                 # @supabase/ssr — NÃO alterar
 │   │   └── admin.ts                  # service_role — NÃO alterar
+│   ├── hooks/
+│   │   └── use-reserva.ts            # Zustand store (sessionStorage SSR-safe)
 │   ├── constants/
 │   │   ├── pousada.ts                # Dados centralizados da pousada
 │   │   ├── acomodacoes.ts
@@ -116,17 +137,13 @@ xangrila_web/
 └── middleware.ts                     # NÃO alterar
 ```
 
-### Pastas ainda NÃO criadas (Fases 5–9)
+### Pastas ainda NÃO criadas (Fases 6–9)
 
 ```
 app/(auth)/                           # Fase 7 — Área do cliente
 app/(admin)/                          # Fase 8 — Painel admin
-app/reservar/                         # Fase 5 — Wizard de reservas
-app/api/                              # Fases 5, 6, 7, 8, 9
-lib/hooks/                            # Fase 5 — Zustand store
 lib/api/                              # Fase 6 — Mercado Pago client
 lib/auth/                             # Fase 8 — Verificação admin
-components/features/reserva/          # Fases 5 e 6
 components/layout/admin-*.tsx         # Fase 8
 vercel.json                           # Fase 9
 ```
@@ -299,26 +316,17 @@ import { Instagram, Facebook } from 'lucide-react';
 
 ## Correções já aplicadas — NÃO reverter
 
-Estas correções foram aplicadas pelo Claude Code durante a Fase 4:
+Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 
 1. **Zod v3 → v4** em `lib/validations/reserva.ts` — removido `required_error` de `z.date()`
 2. **Ícones** — `Instagram` e `Facebook` substituídos por `Globe` e `Share2`
 3. **lib/utils/index.ts** — criado como barrel export (re-exporta `cn`, `date` e `format`)
 4. **@supabase/auth-helpers-nextjs removido** — substituído por `@supabase/ssr` nos 3 clientes
+5. **Supabase JS v2.100+ / type inference** — nas API routes que usam `createAdminClient()`, queries `.from()` e `.rpc()` requerem cast explícito (`as any` + type assertion no resultado) para contornar inferência de `never`. Não reverter — é compatibilidade com `@supabase/supabase-js ^2.100.0`
 
 ---
 
 ## Próximas Fases a Implementar
-
-### Fase 5 — Sistema de Reservas
-Criar wizard multi-step em `app/reservar/` com:
-- Step 1: Seletor de datas (calendário, mínimo 1 diária, sem datas passadas)
-- Step 2: Seletor de quarto (consultar disponibilidade real via Supabase)
-- Step 3: Formulário dados pessoais (nome, telefone, email, observações)
-- Step 4: Resumo + criar pré-reserva via function SQL `verificar_e_criar_reserva()`
-- Zustand store em `lib/hooks/use-reserva.ts`
-- APIs necessárias: `/api/disponibilidade`, `/api/reservas/criar`, `/api/reservas/[id]/status`
-- Tipos de quarto válidos: `'Casa'`, `'Chalé - Com Cozinha'`, `'Chalé - Sem Cozinha'`
 
 ### Fase 6 — Pagamentos PIX
 - Instalar SDK: `npm install mercadopago`
@@ -330,10 +338,9 @@ Criar wizard multi-step em `app/reservar/` com:
 - Configurar variáveis: `MERCADOPAGO_ACCESS_TOKEN`, `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`
 
 ### Fase 7 — Área do Cliente
-- Auth via SMS OTP (Supabase Auth + Twilio)
+- Auth via SMS OTP já implementada na Fase 5 — reusar `auth-gate.tsx` e `api/auth/vincular-cliente`
 - Rota protegida `app/(auth)/minhas-reservas/`
-- APIs: `app/api/auth/login/route.ts` e `app/api/auth/verify/route.ts`
-- Listagem de reservas por status: ativas, pendentes, concluídas
+- Listagem de reservas por status: ativas, pendentes, concluídas (consultar por `cliente_id`)
 
 ### Fase 8 — Painel Administrativo
 - Verificação admin via `lib/auth/admin.ts` + tabela `usuarios_admin`

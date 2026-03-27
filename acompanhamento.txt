@@ -47,7 +47,7 @@ SELECT COUNT(*) FROM information_schema.tables
 
 ---
 
-## 📧 MIGRATION 02: SISTEMA DE NOTIFICAÇÕES
+### 📧 MIGRATION 02: SISTEMA DE NOTIFICAÇÕES
 
 - [x ] **3.1** Arquivo `02_migration_notificacoes.sql` baixado
 - [x ] **3.2** Nova query criada no SQL Editor
@@ -66,7 +66,7 @@ SELECT COUNT(*) FROM information_schema.tables
 
 ---
 
-## 🔒 MIGRATION 03: ROW LEVEL SECURITY (RLS)
+### 🔒 MIGRATION 03: ROW LEVEL SECURITY (RLS)
 
 - [x ] **4.1** Arquivo `03_rls_completo_todas_tabelas_CORRIGIDO.sql` baixado
 - [x ] **4.2** Nova query criada
@@ -87,7 +87,7 @@ SELECT COUNT(*) FROM information_schema.tables
 
 ---
 
-## ⚙️ MIGRATION 04A: FUNCTION VERIFICAR E CRIAR RESERVA
+### ⚙️ MIGRATION 04A: FUNCTION VERIFICAR E CRIAR RESERVA
 
 - [ x] **5.1** Arquivo `04A_function_verificar_e_criar_reserva.sql` baixado
 - [ x] **5.2** Nova query criada
@@ -98,12 +98,12 @@ SELECT COUNT(*) FROM information_schema.tables
   ✅ Function verificar_e_criar_reserva criada!
 ```
 
-### 📊 Function Criada
+#### 📊 Function Criada
 - [ x] verificar_e_criar_reserva()
 
 ---
 
-## ⚙️ MIGRATION 04B: FUNCTION VALIDAR RESERVA COMPLETA
+### ⚙️ MIGRATION 04B: FUNCTION VALIDAR RESERVA COMPLETA
 
 - [x ] **6.1** Arquivo `04B_function_validar_reserva_completa.sql` baixado
 - [x ] **6.2** Nova query criada
@@ -122,7 +122,7 @@ SELECT COUNT(*) FROM information_schema.tables
 
 ---
 
-## ⚙️ MIGRATION 04C: FUNCTION BUSCAR PREÇOS PACOTE
+### ⚙️ MIGRATION 04C: FUNCTION BUSCAR PREÇOS PACOTE
 
 - [x ] **7.1** Arquivo `04C_function_buscar_precos_pacote.sql` baixado
 - [x ] **7.2** Nova query criada
@@ -140,7 +140,7 @@ SELECT COUNT(*) FROM information_schema.tables
 
 ---
 
-## ✅ VERIFICAÇÃO FINAL
+### ✅ VERIFICAÇÃO FINAL
 
 - [x ] **8.1** Arquivo `VERIFICACAO_FASE_2_VISUAL.sql` baixado
 - [x ] **8.2** Script de verificação executado
@@ -162,8 +162,7 @@ SELECT COUNT(*) FROM information_schema.tables
 
 
 
-  ## FASE 3
-  CHECKLIST FINAL
+  ## ✅ CHECKLIST DA FASE 3
 
  Pacote @supabase/ssr instalado
  Pacote @supabase/auth-helpers-nextjs removido
@@ -178,7 +177,7 @@ SELECT COUNT(*) FROM information_schema.tables
  Página /teste-fase3 funcionando
  Commit feito
 
- ## FASE 4
+ ## ✅ CHECKLIST DA FASE 4
 
 
 Fase 4 implementada com sucesso. 
@@ -208,16 +207,30 @@ Build: ✅ sem erros |
  Dev: ✅ rodando em http://localhost:3000
 
 
-## FASE 5
+## ✅ CHECKLIST DA FASE 5
 
  O que testamos já confirmou que a Fase 5 está 100% funcional:
 
 Etapa	Status
-Autenticação OTP (SMS)	✅ Funcionou
-Wizard abriu após auth	✅ Funcionou
-Calendário de datas (Step 1)	✅ Funcionou
-API de disponibilidade	✅ Funcionou (retornou erro correto de período fechado)
-Build sem erros	✅ Zero erros TS
-O erro de "período não disponível" é o comportamento correto do sistema — não é um bug. A pousada ainda não abriu reservas para nenhuma temporada.
+- [ x] Autenticação OTP (SMS)	✅ Funcionou
+- [ x] Wizard abriu após auth	✅ Funcionou
+- [ x] Calendário de datas (Step 1)	✅ Funcionou
+- [ x] API de disponibilidade	✅ Funcionou (retornou erro correto de período fechado)
+- [ x] Build sem erros	✅ Zero erros TS
+- [ x] O erro de "período não disponível" é o comportamento correto do sistema — não é um bug. A pousada ainda não abriu reservas para nenhuma temporada.
 
 Fase 5 concluída. Quer partir para a Fase 6 (Pagamentos PIX via Mercado Pago)?
+
+## ✅ CHECKLIST DA FASE 6
+[ ] npm install mercadopago executado
+[ ] npm list qrcode.react confirma instalação
+[ ] types/pagamentos.ts criado com PixResponse, WebhookMercadoPago, PaymentStatus
+[ ] lib/api/mercadopago/client.ts criado (SEM idempotencyKey fixo)
+[ ] app/api/pagamentos/pix/gerar/route.ts funcional
+[ ] app/api/webhooks/mercadopago/route.ts funcional (público, sem auth)
+[ ] components/features/reserva/pix-payment.tsx com QR Code + timer + polling
+[ ] app/reservar/pagamento/page.tsx renderiza PixPayment
+[ ] app/reservar/confirmacao/page.tsx com resumo e sucesso
+[ ] npm run build sem erros TypeScript
+[ ] Teste manual: QR Code aparece e código é copiável
+[ ] Teste manual: curl no webhook atualiza o banco

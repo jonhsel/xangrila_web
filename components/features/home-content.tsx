@@ -107,7 +107,7 @@ export function HomeContent() {
       <section className="bg-muted/30 py-16 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="mb-10 text-center">
-            <h2 className="text-3xl font-bold">Por que escolher a Xangrilá?</h2>
+            <h2 className="text-3xl font-bold">Por que escolher a Pousada Xangri-lá?</h2>
             <p className="mt-2 text-muted-foreground">Experiências únicas para cada tipo de hóspede</p>
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
@@ -228,7 +228,7 @@ export function HomeContent() {
         <div className="container mx-auto max-w-2xl text-center space-y-6">
           <h2 className="text-3xl font-bold">Pronto para sua próxima aventura?</h2>
           <p className="text-primary-foreground/80">
-            Reserve agora e garanta sua estadia na Pousada Xangrilá. Momentos inesquecíveis esperam por você!
+            Reserve agora e garanta sua estadia na Pousada Xangri-lá. Momentos inesquecíveis esperam por você!
           </p>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button size="lg" variant="secondary" asChild>

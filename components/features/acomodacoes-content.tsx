@@ -225,7 +225,7 @@ export function AcomodacoesContent() {
         <div className="container mx-auto max-w-2xl space-y-6">
           <h2 className="text-3xl font-bold">Encontrou a acomodação ideal?</h2>
           <p className="text-muted-foreground">
-            Reserve agora e garanta sua estadia na Pousada Xangrilá
+            Reserve agora e garanta sua estadia na Pousada Xangri-lá
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button size="lg" asChild>

@@ -359,3 +359,21 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
   - `/api/cron/limpeza/prereservas` → a cada 30 min
 - Configurar variáveis de ambiente no painel Vercel
 - Webhook do Mercado Pago apontando para URL de produção
+
+---
+
+## ⚠️ Checklist de Verificação — Antes do Deploy (Fase 9)
+
+### Banco de Dados (Supabase)
+- [ ] Inserir registros reais em `acomodacoes` e `precos_acomodacoes` (dados de produção)
+- [ ] Inserir período de reserva ativo em `periodos_reserva` com datas de produção
+
+### Mercado Pago
+- [ ] Trocar credenciais `TEST-...` por `APP_USR-...` (produção) no painel Vercel
+- [ ] Substituir email hardcoded `jonhselmo.engcomp@gmail.com` em `app/api/pagamentos/pix/gerar/route.ts` pelo email real da pousada ou implementar campo email no cadastro do cliente
+- [ ] Configurar webhook no painel MP apontando para URL de produção: `https://[dominio]/api/webhooks/mercadopago`
+
+### Variáveis de Ambiente
+- [ ] `NEXT_PUBLIC_APP_URL` → URL de produção (sem barra final)
+- [ ] `TWILIO_PHONE_NUMBER` corrigir formato — valor atual tem `=123456` no final (erro de digitação)
+- [ ] Todas as variáveis configuradas no painel Vercel (não apenas no `.env.local`)

@@ -98,8 +98,6 @@ async function processarWebhook(request: NextRequest): Promise<void> {
       .update({
         valor_pago: payment.transaction_amount,
         status: 'confirmada',
-        data_pagamento: new Date().toISOString(),
-        metodo_pagamento: 'pix',
       })
       .eq('reserva_id', reservaId);
 

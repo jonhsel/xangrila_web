@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
     const resultado = resultadoRpc as VerificarReservaResponse;
 
     if (!resultado?.sucesso) {
+      console.error('[verificar_e_criar_reserva] resultado:', JSON.stringify(resultado));
       return NextResponse.json(
         { erro: resultado?.erro ?? 'Não foi possível criar a reserva.' },
         { status: 422 }

@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     // 9. Montar email do pagador
     // clientes_xngrl não armazena email — usar email fornecido ou gerar temporário
-    const emailPagador = email ?? `reserva-${reservaId}@pousadaxangrila.temp`;
+    const emailPagador = email ?? 'jonhselmo.engcomp@gmail.com';
 
     const nomeCliente = cliente.nome_cliente ?? 'Hóspede';
 

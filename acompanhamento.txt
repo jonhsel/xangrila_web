@@ -252,3 +252,53 @@ Correções aplicadas durante a implementação:
 
 Fase 6 concluída. Próxima: Fase 7 — Área do Cliente (auth SMS/OTP, minhas-reservas).
 
+
+## ✅ CHECKLIST DA FASE 7
+
+Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
+
+### Entregas realizadas
+
+[x] Componentes shadcn verificados (tabs e dropdown-menu já existiam — sem nova instalação)
+[x] app/api/auth/logout/route.ts — POST que encerra sessão via supabase.auth.signOut()
+[x] app/login/page.tsx — Página de login OTP client-side com timer de reenvio 60s e sonner
+[x] components/layout/client-header.tsx — Header da área do cliente com dropdown de logout (sonner, não useToast)
+[x] components/features/reserva/reserva-card.tsx — Card de reserva com status badge, valores, aviso de expiração e ações
+[x] app/(auth)/layout.tsx — Layout protegido (server component): verifica auth, redireciona para /login se não logado
+[x] app/(auth)/minhas-reservas/page.tsx — Listagem em tabs: Ativas / Pendentes / Concluídas (admin client + cast as any)
+[x] Header principal (components/layout/header.tsx) — já possuía link "Minhas Reservas" → /minhas-reservas, sem alteração necessária
+[x] npm run build — ✅ Compiled successfully, zero erros TypeScript
+
+### Decisões técnicas aplicadas
+
+- OTP feito client-side via supabase.auth.signInWithOtp() (não via API route) — reutiliza infraestrutura da Fase 5
+- Proteção de rotas no layout (auth)/layout.tsx, não no middleware.ts (conforme instrução do projeto)
+- ClientHeader recebe userPhone: string (primitivo), não o objeto user inteiro — evita serializar tokens
+- createAdminClient() com cast (as any) nas queries — padrão do projeto para Supabase JS v2.100+
+- Coluna buscada: telefonewhatsapp_cliente (lowercase, como PostgreSQL normaliza)
+
+### Pendente (testes manuais)
+
+[ ] Teste do fluxo completo: /login → SMS OTP → /minhas-reservas
+[ ] Validar exibição correta dos cards de reserva com dados reais
+[ ] Testar logout e tentativa de acesso a /minhas-reservas sem sessão
+
+---
+
+## 📊 RESUMO PARA DIAGRAMA DE GANTT
+
+| Fase | Descrição                              | Início       | Conclusão    | Dias |
+|------|----------------------------------------|--------------|--------------|------|
+| 1    | Setup Inicial                          | 2026-03-25   | 2026-03-25   | 1    |
+| 2    | Configuração Supabase                  | 2026-03-25   | 2026-03-25   | 1    |
+| 3    | Código Base (types, utils, clients)    | 2026-03-25   | 2026-03-25   | 1    |
+| 4    | Landing Page e UI Pública              | 2026-03-26   | 2026-03-26   | 1    |
+| 5    | Sistema de Reservas (wizard + OTP)     | 2026-03-26   | 2026-03-26   | 1    |
+| 6    | Pagamentos PIX (Mercado Pago)          | 2026-03-27   | 2026-03-27   | 1    |
+| 7    | Área do Cliente (login + reservas)     | 2026-03-28   | 2026-03-28   | 1    |
+| 8    | Painel Administrativo                  | -            | -            | -    |
+| 9    | Deploy e Go-Live (Vercel)              | -            | -            | -    |
+
+Total de fases concluídas: 7/9
+Período de desenvolvimento até agora: 2026-03-25 a 2026-03-28 (4 dias corridos)
+

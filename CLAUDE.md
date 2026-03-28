@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 5 estão concluídas. As fases 6 a 9 estão em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 7 estão concluídas. As fases 8 e 9 estão em andamento.
 
 ---
 
@@ -64,14 +64,14 @@ app/globals.css
 | 3 | Código Base (types, utils, supabase clients) | ✅ Concluída |
 | 4 | Landing Page e UI Pública | ✅ Concluída |
 | 5 | Sistema de Reservas (wizard multi-step + auth OTP) | ✅ Concluída |
-| 6 | Pagamentos PIX via Mercado Pago | 🚧 Em andamento |
-| 7 | Área do Cliente (auth SMS/OTP, minhas-reservas) | 🚧 Em andamento |
+| 6 | Pagamentos PIX via Mercado Pago | ✅ Concluída |
+| 7 | Área do Cliente (auth SMS/OTP, minhas-reservas) | ✅ Concluída |
 | 8 | Painel Administrativo (dashboard, gestão) | 🚧 Em andamento |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | 🚧 Em andamento |
 
 ---
 
-## O que já existe no projeto (Fases 1–5)
+## O que já existe no projeto (Fases 1–7)
 
 ### Estrutura de pastas atual
 
@@ -85,14 +85,31 @@ xangrila_web/
 │   │   ├── day-use/page.tsx          # Placeholder + CTA
 │   │   ├── loading.tsx               # Skeleton animate-pulse
 │   │   └── error.tsx                 # Com reset()
+│   ├── (auth)/                       # Fase 7 — Área do cliente (protegida)
+│   │   ├── layout.tsx                # Verifica auth, redireciona para /login
+│   │   └── minhas-reservas/
+│   │       └── page.tsx              # Listagem de reservas por status (server component)
+│   ├── login/
+│   │   └── page.tsx                  # Página de login OTP client-side
 │   ├── reservar/
 │   │   ├── layout.tsx                # Header + Footer
-│   │   └── page.tsx                  # Auth gate + wizard (client component)
+│   │   ├── page.tsx                  # Auth gate + wizard (client component)
+│   │   ├── pagamento/
+│   │   │   └── page.tsx              # Fase 6 — PIX QR Code + timer
+│   │   └── confirmacao/
+│   │       └── page.tsx              # Fase 6 — Confirmação de pagamento
 │   ├── api/
-│   │   ├── auth/vincular-cliente/
-│   │   │   └── route.ts              # POST — busca/cria cliente após OTP
+│   │   ├── auth/
+│   │   │   ├── vincular-cliente/
+│   │   │   │   └── route.ts          # POST — busca/cria cliente após OTP
+│   │   │   └── logout/
+│   │   │       └── route.ts          # POST — encerra sessão (Fase 7)
 │   │   ├── disponibilidade/
 │   │   │   └── route.ts              # GET — disponibilidade + preços (público)
+│   │   ├── pagamentos/pix/gerar/
+│   │   │   └── route.ts              # POST — gera cobrança PIX (Fase 6)
+│   │   ├── webhooks/mercadopago/
+│   │   │   └── route.ts              # POST — webhook de confirmação (Fase 6)
 │   │   └── reservas/
 │   │       ├── criar/
 │   │       │   └── route.ts          # POST — cria reserva (autenticado)
@@ -101,10 +118,11 @@ xangrila_web/
 │   ├── layout.tsx                    # Layout raiz
 │   └── not-found.tsx                 # 404 customizado
 ├── components/
-│   ├── ui/                           # 14 componentes shadcn (badge e skeleton adicionados na Fase 5)
+│   ├── ui/                           # 14 componentes shadcn
 │   ├── layout/
-│   │   ├── header.tsx                # Responsivo + aria
-│   │   └── footer.tsx                # 4 colunas
+│   │   ├── header.tsx                # Responsivo + aria (link Minhas Reservas)
+│   │   ├── footer.tsx                # 4 colunas
+│   │   └── client-header.tsx         # Fase 7 — Header da área do cliente
 │   └── features/
 │       ├── home-content.tsx          # Landing page completa
 │       ├── whatsapp-button.tsx       # Botão flutuante
@@ -113,12 +131,17 @@ xangrila_web/
 │           ├── step-indicator.tsx    # Barra de progresso 3 steps
 │           ├── date-selector.tsx     # Step 1 — calendário de intervalo
 │           ├── room-selector.tsx     # Step 2 — cards de quartos + preços
-│           └── reservation-summary.tsx # Step 3 — resumo + confirmar
+│           ├── reservation-summary.tsx # Step 3 — resumo + confirmar
+│           ├── pix-payment.tsx       # Fase 6 — QR Code + timer + polling
+│           └── reserva-card.tsx      # Fase 7 — Card de reserva individual
 ├── lib/
 │   ├── supabase/
 │   │   ├── client.ts                 # @supabase/ssr — NÃO alterar
 │   │   ├── server.ts                 # @supabase/ssr — NÃO alterar
 │   │   └── admin.ts                  # service_role — NÃO alterar
+│   ├── api/
+│   │   └── mercadopago/
+│   │       └── client.ts             # Fase 6 — SDK Mercado Pago configurado
 │   ├── hooks/
 │   │   └── use-reserva.ts            # Zustand store (sessionStorage SSR-safe)
 │   ├── constants/
@@ -133,16 +156,15 @@ xangrila_web/
 │       └── format.ts                 # 16 funções de formatação
 ├── types/
 │   ├── database.ts                   # 25 tabelas — NÃO alterar
-│   └── index.ts                      # Row aliases + constantes — NÃO alterar
+│   ├── index.ts                      # Row aliases + constantes — NÃO alterar
+│   └── pagamentos.ts                 # Fase 6 — PixResponse, WebhookMercadoPago, PaymentStatus
 └── middleware.ts                     # NÃO alterar
 ```
 
-### Pastas ainda NÃO criadas (Fases 6–9)
+### Pastas ainda NÃO criadas (Fases 8–9)
 
 ```
-app/(auth)/                           # Fase 7 — Área do cliente
 app/(admin)/                          # Fase 8 — Painel admin
-lib/api/                              # Fase 6 — Mercado Pago client
 lib/auth/                             # Fase 8 — Verificação admin
 components/layout/admin-*.tsx         # Fase 8
 vercel.json                           # Fase 9
@@ -327,20 +349,6 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 ---
 
 ## Próximas Fases a Implementar
-
-### Fase 6 — Pagamentos PIX
-- Instalar SDK: `npm install mercadopago`
-- Client em `lib/api/mercadopago/client.ts`
-- Geração de QR Code: `app/api/pagamentos/pix/gerar/route.ts`
-- Webhook de confirmação: `app/api/webhooks/mercadopago/route.ts`
-- Componente `pix-payment.tsx` com QR Code + timer de expiração
-- Teste local requer ngrok: `ngrok http 3000`
-- Configurar variáveis: `MERCADOPAGO_ACCESS_TOKEN`, `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY`
-
-### Fase 7 — Área do Cliente
-- Auth via SMS OTP já implementada na Fase 5 — reusar `auth-gate.tsx` e `api/auth/vincular-cliente`
-- Rota protegida `app/(auth)/minhas-reservas/`
-- Listagem de reservas por status: ativas, pendentes, concluídas (consultar por `cliente_id`)
 
 ### Fase 8 — Painel Administrativo
 - Verificação admin via `lib/auth/admin.ts` + tabela `usuarios_admin`

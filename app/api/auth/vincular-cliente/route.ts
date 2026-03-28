@@ -33,11 +33,11 @@ export async function POST(request: NextRequest) {
       telefoneLimpo.startsWith('55') ? telefoneLimpo.slice(2) : telefoneLimpo,
     ];
 
-    const { data: clientes } = await admin
-      .from('clientes_xngrl')
-      .select('id_cliente, nome_cliente, telefonewhatsapp_cliente')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: clientes } = await (admin.from('clientes_xngrl') as any)
+      .select('id_cliente, nome_cliente, telefonewhatsapp_cliente, email_cliente')
       .in('telefonewhatsapp_cliente', variantesBusca)
-      .limit(1) as { data: Pick<ClienteRow, 'id_cliente' | 'nome_cliente' | 'telefonewhatsapp_cliente'>[] | null };
+      .limit(1) as { data: (Pick<ClienteRow, 'id_cliente' | 'nome_cliente' | 'telefonewhatsapp_cliente'> & { email_cliente: string | null })[] | null };
 
     const clienteExistente = clientes?.[0];
 
@@ -46,6 +46,7 @@ export async function POST(request: NextRequest) {
         sucesso: true,
         clienteId: clienteExistente.id_cliente,
         nome: clienteExistente.nome_cliente ?? telefone,
+        email: clienteExistente.email_cliente || null,
         novo: false,
       });
     }
@@ -55,8 +56,8 @@ export async function POST(request: NextRequest) {
       .from('clientes_xngrl')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .insert({ nome_cliente: telefone, telefonewhatsapp_cliente: telefone } as any)
-      .select('id_cliente, nome_cliente')
-      .single() as { data: Pick<ClienteRow, 'id_cliente' | 'nome_cliente'> | null; error: unknown };
+      .select('id_cliente, nome_cliente, email_cliente')
+      .single() as { data: (Pick<ClienteRow, 'id_cliente' | 'nome_cliente'> & { email_cliente: string | null }) | null; error: unknown };
 
     if (insertError || !novoCliente) {
       console.error('Erro ao criar cliente:', insertError);
@@ -67,6 +68,7 @@ export async function POST(request: NextRequest) {
       sucesso: true,
       clienteId: novoCliente.id_cliente,
       nome: novoCliente.nome_cliente ?? telefone,
+      email: novoCliente.email_cliente || null,
       novo: true,
     });
   } catch (err) {

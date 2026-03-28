@@ -5,6 +5,8 @@ import { MapPin, Home, Star, Wifi, Car, Coffee, Shield, Waves, TreePine, CheckCi
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { POUSADA, ROUTES, TIPOS_ACOMODACAO } from '@/lib/constants';
+import { HeroCarousel } from '@/components/features/hero-carousel';
+import { PhotoGallery } from '@/components/features/photo-gallery';
 
 const features = [
   {
@@ -54,27 +56,47 @@ const testimonials = [
   },
 ];
 
+const galeriaFotos = [
+  { src: '/images/galeria/piscina.svg', alt: 'Piscina', caption: 'Piscina' },
+  { src: '/images/galeria/jardim.svg', alt: 'Jardim', caption: 'Jardins' },
+  { src: '/images/galeria/recepcao.svg', alt: 'Recepção', caption: 'Recepção' },
+  { src: '/images/galeria/cafe.svg', alt: 'Café da manhã', caption: 'Café da manhã' },
+  { src: '/images/galeria/area-externa.svg', alt: 'Área externa', caption: 'Área externa' },
+  { src: '/images/galeria/churrasqueira.svg', alt: 'Churrasqueira', caption: 'Churrasqueira' },
+  { src: '/images/galeria/estacionamento.svg', alt: 'Estacionamento', caption: 'Estacionamento' },
+  { src: '/images/galeria/noturna.svg', alt: 'Vista noturna', caption: 'Vista noturna' },
+];
+
 export function HomeContent() {
   return (
     <div className="flex flex-col">
-      {/* Hero */}
-      <section className="relative flex min-h-[80vh] flex-col items-center justify-center bg-gradient-to-br from-primary/10 via-background to-secondary/10 px-4 text-center">
-        <div className="max-w-3xl space-y-6">
-          <div className="inline-block rounded-full bg-primary/10 px-4 py-1.5 text-sm font-medium text-primary">
+      {/* Hero com Carrossel */}
+      <section className="relative flex min-h-[80vh] flex-col items-center justify-center px-4 text-center">
+        <HeroCarousel
+          images={[
+            { src: '/images/hero/hero-1.svg', alt: 'Fachada da Pousada Xangrilá' },
+            { src: '/images/hero/hero-2.svg', alt: 'Piscina da Pousada Xangrilá' },
+            { src: '/images/hero/hero-3.svg', alt: 'Área externa da Pousada Xangrilá' },
+            { src: '/images/hero/hero-4.svg', alt: 'Vista panorâmica da Pousada Xangrilá' },
+          ]}
+          interval={5000}
+        />
+        <div className="relative z-10 max-w-3xl space-y-6">
+          <div className="inline-block rounded-full bg-white/20 px-4 py-1.5 text-sm font-medium text-white">
             Bem-vindo à
           </div>
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
+          <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl md:text-6xl">
             {POUSADA.nomeCompleto}
           </h1>
-          <p className="text-lg text-muted-foreground sm:text-xl">
+          <p className="text-lg text-white/80 sm:text-xl">
             {POUSADA.slogan}
           </p>
-          <p className="text-muted-foreground">{POUSADA.descricao}</p>
+          <p className="text-white/70">{POUSADA.descricao}</p>
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button size="lg" asChild>
               <Link href={ROUTES.reservar}>Reservar Agora</Link>
             </Button>
-            <Button size="lg" variant="outline" asChild>
+            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" asChild>
               <Link href={ROUTES.dayUse}>Day Use</Link>
             </Button>
           </div>
@@ -159,8 +181,21 @@ export function HomeContent() {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Galeria de Fotos */}
       <section className="py-16 px-4">
+        <div className="container mx-auto max-w-5xl">
+          <div className="mb-10 text-center">
+            <h2 className="text-3xl font-bold">Conheça a Pousada</h2>
+            <p className="mt-2 text-muted-foreground">
+              Um pouco do que espera por você
+            </p>
+          </div>
+          <PhotoGallery images={galeriaFotos} />
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="bg-muted/30 py-16 px-4">
         <div className="container mx-auto max-w-5xl">
           <div className="mb-10 text-center">
             <h2 className="text-3xl font-bold">O que nossos hóspedes dizem</h2>

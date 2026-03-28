@@ -13,8 +13,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 // TIPOS
 // ============================================
 
+interface ClienteVinculado {
+  clienteId: number;
+  nome: string;
+  email: string | null;
+  telefone: string;
+  precisaCompletarPerfil: boolean;
+}
+
 interface AuthGateProps {
-  onAuthenticated: () => void;
+  onAuthenticated: (cliente: ClienteVinculado) => void;
 }
 
 type Etapa = 'telefone' | 'codigo';
@@ -103,7 +111,44 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
       }
 
       toast.success('Telefone verificado com sucesso!');
-      onAuthenticated();
+
+      // Vincular cliente e verificar se perfil precisa ser completado
+      try {
+        const resp = await fetch('/api/auth/vincular-cliente', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telefone: telefoneParaE164(telefone) }),
+        });
+
+        if (resp.ok) {
+          const dados = await resp.json();
+          const precisaCompletarPerfil =
+            dados.novo === true ||
+            !dados.nome ||
+            dados.nome === telefoneParaE164(telefone) ||
+            dados.nome === telefone.replace(/\D/g, '');
+
+          onAuthenticated({
+            clienteId: dados.clienteId,
+            nome: dados.nome,
+            email: dados.email,
+            telefone: telefone,
+            precisaCompletarPerfil,
+          });
+          return;
+        }
+      } catch {
+        // falha silenciosa — continua sem dados do cliente
+      }
+
+      // Fallback sem dados de cliente
+      onAuthenticated({
+        clienteId: 0,
+        nome: '',
+        email: null,
+        telefone: telefone,
+        precisaCompletarPerfil: false,
+      });
     } catch {
       toast.error('Erro ao verificar código. Tente novamente.');
     } finally {

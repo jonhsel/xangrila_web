@@ -125,6 +125,7 @@ export interface Database {
           created_at: string;
           nome_cliente: string | null;
           telefonewhatsapp_cliente: string | null;
+          email_cliente: string | null;
           botativo: string | null;
           conversationid: string | null;
           idempresa: number | null;
@@ -139,6 +140,7 @@ export interface Database {
           created_at?: string;
           nome_cliente?: string | null;
           telefonewhatsapp_cliente?: string | null;
+          email_cliente?: string | null;
           botativo?: string | null;
           conversationid?: string | null;
           idempresa?: number | null;
@@ -153,6 +155,7 @@ export interface Database {
           created_at?: string;
           nome_cliente?: string | null;
           telefonewhatsapp_cliente?: string | null;
+          email_cliente?: string | null;
           botativo?: string | null;
           conversationid?: string | null;
           idempresa?: number | null;

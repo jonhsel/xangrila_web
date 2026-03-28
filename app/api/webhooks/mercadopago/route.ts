@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { paymentClient } from '@/lib/api/mercadopago/client';
+import { resend, isEmailEnabled } from '@/lib/api/email/client';
+import { gerarEmailConfirmacaoCliente } from '@/lib/api/email/templates/confirmacao-cliente';
+import { gerarEmailNotificacaoPousada } from '@/lib/api/email/templates/notificacao-pousada';
+import { POUSADA } from '@/lib/constants/pousada';
 import type { WebhookMercadoPago } from '@/types/pagamentos';
-import type { ReservaRow, PreReservaRow } from '@/types';
+import type { ReservaRow } from '@/types';
 
 // ============================================
 // POST — Webhook do Mercado Pago
@@ -118,6 +122,125 @@ async function processarWebhook(request: NextRequest): Promise<void> {
     }
 
     console.log(`[Webhook MP] ✅ Reserva ${reservaId} confirmada com sucesso — Pagamento MP: ${payment.id}`);
+
+    // ============================================
+    // ENVIO DE EMAILS (não falha o webhook se der erro)
+    // ============================================
+    if (isEmailEnabled()) {
+      // Buscar dados completos da reserva e do cliente
+      type ReservaCompleta = Pick<ReservaRow,
+        'reserva_id' | 'cliente_id' | 'data_checkin' | 'data_checkout' |
+        'pessoas' | 'tipo_quarto' | 'valor_total' | 'valor_pago' |
+        'valor_restante' | 'observacoes'
+      >;
+
+      const { data: reserva } = (await admin
+        .from('reservas_confirmadas')
+        .select('reserva_id, cliente_id, data_checkin, data_checkout, pessoas, tipo_quarto, valor_total, valor_pago, valor_restante, observacoes')
+        .eq('reserva_id', reservaId)
+        .single()) as { data: ReservaCompleta | null; error: unknown };
+
+      if (!reserva) {
+        console.warn('[Webhook MP] Reserva não encontrada para envio de email');
+        return;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: cliente } = await (admin.from('clientes_xngrl') as any)
+        .select('nome_cliente, telefonewhatsapp_cliente, email_cliente, total_reservas, valor_total_gasto')
+        .eq('id_cliente', reserva.cliente_id)
+        .single() as {
+          data: {
+            nome_cliente: string | null;
+            telefonewhatsapp_cliente: string | null;
+            email_cliente: string | null;
+            total_reservas: number;
+            valor_total_gasto: number;
+          } | null;
+        };
+
+      // Calcular número de diárias
+      const checkin = new Date(reserva.data_checkin);
+      const checkout = new Date(reserva.data_checkout);
+      const totalDiarias = Math.round((checkout.getTime() - checkin.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Formatar datas
+      const formatarData = (iso: string) => {
+        const [ano, mes, dia] = iso.split('T')[0].split('-');
+        return `${dia}/${mes}/${ano}`;
+      };
+
+      const dataCheckinFormatada = formatarData(reserva.data_checkin);
+      const dataCheckoutFormatada = formatarData(reserva.data_checkout);
+      const valorPago = Number(payment.transaction_amount);
+      const valorRestante = Number(reserva.valor_restante);
+
+      // Email para o cliente
+      if (cliente?.email_cliente) {
+        try {
+          const emailCliente = gerarEmailConfirmacaoCliente({
+            nomeCliente: cliente.nome_cliente || 'Cliente',
+            reservaId: reserva.reserva_id,
+            dataCheckin: dataCheckinFormatada,
+            dataCheckout: dataCheckoutFormatada,
+            tipoQuarto: reserva.tipo_quarto,
+            pessoas: reserva.pessoas,
+            totalDiarias,
+            valorTotal: Number(reserva.valor_total),
+            valorPago,
+            valorRestante,
+          });
+
+          await resend!.emails.send({
+            from: `${POUSADA.nome} <noreply@pousadaxangrila.com.br>`,
+            to: cliente.email_cliente,
+            subject: emailCliente.subject,
+            html: emailCliente.html,
+          });
+
+          console.log(`[Webhook MP] Email de confirmação enviado para ${cliente.email_cliente}`);
+        } catch (emailError) {
+          console.error('[Webhook MP] Erro ao enviar email para cliente:', emailError);
+        }
+      } else {
+        console.log('[Webhook MP] Cliente sem email cadastrado — email não enviado');
+      }
+
+      // Email para a pousada
+      try {
+        const emailPousada = gerarEmailNotificacaoPousada({
+          reservaId: reserva.reserva_id,
+          dataCheckin: dataCheckinFormatada,
+          dataCheckout: dataCheckoutFormatada,
+          tipoQuarto: reserva.tipo_quarto,
+          pessoas: reserva.pessoas,
+          totalDiarias,
+          valorTotal: Number(reserva.valor_total),
+          valorPago,
+          valorRestante,
+          observacoes: reserva.observacoes,
+          nomeCliente: cliente?.nome_cliente || 'Cliente',
+          telefoneCliente: cliente?.telefonewhatsapp_cliente || '',
+          emailCliente: cliente?.email_cliente || null,
+          totalReservasCliente: cliente?.total_reservas || 0,
+          valorTotalGastoCliente: Number(cliente?.valor_total_gasto || 0),
+          mercadoPagoPaymentId: paymentId,
+          dataPagamento: new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }),
+          metodoPagamento: 'PIX',
+        });
+
+        await resend!.emails.send({
+          from: `Sistema Xangrilá <noreply@pousadaxangrila.com.br>`,
+          to: POUSADA.email,
+          subject: emailPousada.subject,
+          html: emailPousada.html,
+        });
+
+        console.log('[Webhook MP] Email de notificação enviado para a pousada');
+      } catch (emailError) {
+        console.error('[Webhook MP] Erro ao enviar email para pousada:', emailError);
+      }
+    }
   } catch (err) {
     console.error('[Webhook MP] Erro ao processar pagamento:', err);
   }

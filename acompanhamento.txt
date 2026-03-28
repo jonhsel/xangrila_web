@@ -285,6 +285,52 @@ Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
 
 ---
 
+## ✅ CHECKLIST DA FASE 7.5
+
+Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
+
+### Entregas realizadas
+
+[x] SQL executado no Supabase — ALTER TABLE clientes_xngrl ADD COLUMN email_cliente character varying + índice
+[x] types/database.ts — email_cliente adicionado em Row, Insert e Update de clientes_xngrl
+[x] components/features/reserva/client-profile-form.tsx — formulário pós-OTP para nome + email (opcional)
+[x] app/api/auth/atualizar-perfil/route.ts — PATCH autenticado para salvar perfil
+[x] app/api/auth/vincular-cliente/route.ts — agora retorna email_cliente na resposta
+[x] components/features/reserva/auth-gate.tsx — chama vincular-cliente após OTP, detecta perfil incompleto
+[x] app/reservar/page.tsx — exibe ClientProfileForm antes do wizard se nome = telefone ou cliente novo
+[x] npm install resend — resend instalado
+[x] lib/api/email/client.ts — client Resend com graceful fallback se RESEND_API_KEY ausente
+[x] lib/api/email/templates/confirmacao-cliente.ts — template HTML completo para o hóspede
+[x] lib/api/email/templates/notificacao-pousada.ts — template HTML para a pousada (badge VIP/Frequente)
+[x] app/api/webhooks/mercadopago/route.ts — integra envio de emails cliente + pousada após pagamento aprovado
+[x] components/features/hero-carousel.tsx — slideshow automático com transição fade e indicadores clicáveis
+[x] components/features/photo-gallery.tsx — grid de fotos com lightbox e navegação
+[x] components/features/home-content.tsx — hero com carrossel + seção "Conheça a Pousada" (galeria)
+[x] public/images/hero/ — 4 SVGs placeholder (hero-1 a hero-4)
+[x] public/images/galeria/ — 8 SVGs placeholder (piscina, jardim, recepcao, cafe, area-externa, churrasqueira, estacionamento, noturna)
+[x] public/images/acomodacoes/ — 10 SVGs placeholder (casa-1~4, chale-cc-1~3, chale-sc-1~3)
+[x] lib/constants/pousada.ts — ROUTES.acomodacoes = '/acomodacoes' adicionado
+[x] components/layout/header.tsx — link "Acomodações" atualizado para ROUTES.acomodacoes
+[x] app/(public)/acomodacoes/page.tsx — página criada com metadata SEO
+[x] components/features/acomodacoes-content.tsx — galeria por tipo + regras da pousada + lightbox + CTA
+[x] npm run build — ✅ Compiled successfully, 19 páginas, zero erros TypeScript
+
+### Decisões técnicas
+
+- Fotos placeholder são SVG (não JPG) — ao inserir fotos reais, trocar extensão nos 3 componentes
+- Email para cliente só enviado se email_cliente estiver preenchido — sem erro se ausente
+- Email para pousada sempre enviado se RESEND_API_KEY configurado — independente do email do cliente
+- Badge VIP: gasto acumulado >= R$ 5.000; Frequente: >= 3 reservas
+- Erros de email não travam o webhook — tratados com try/catch independentes
+
+### Pendente (antes do deploy)
+
+[ ] Configurar RESEND_API_KEY no painel Vercel
+[ ] Verificar domínio pousadaxangrila.com.br no painel do Resend
+[ ] Substituir SVGs placeholder pelas fotos reais da pousada
+
+---
+
 ## 📊 RESUMO PARA DIAGRAMA DE GANTT
 
 | Fase | Descrição                              | Início       | Conclusão    | Dias |
@@ -296,9 +342,10 @@ Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
 | 5    | Sistema de Reservas (wizard + OTP)     | 2026-03-26   | 2026-03-26   | 1    |
 | 6    | Pagamentos PIX (Mercado Pago)          | 2026-03-27   | 2026-03-27   | 1    |
 | 7    | Área do Cliente (login + reservas)     | 2026-03-28   | 2026-03-28   | 1    |
+| 7.5  | Melhorias (perfil, emails, visual)     | 2026-03-28   | 2026-03-28   | 1    |
 | 8    | Painel Administrativo                  | -            | -            | -    |
 | 9    | Deploy e Go-Live (Vercel)              | -            | -            | -    |
 
-Total de fases concluídas: 7/9
+Total de fases concluídas: 7.5/9
 Período de desenvolvimento até agora: 2026-03-25 a 2026-03-28 (4 dias corridos)
 

@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 
 const navLinks = [
   { label: 'Início', href: ROUTES.home },
-  { label: 'Acomodações', href: ROUTES.quartos },
+  { label: 'Acomodações', href: ROUTES.acomodacoes },
   { label: 'Day Use', href: ROUTES.dayUse },
   { label: 'Sobre', href: ROUTES.sobre },
   { label: 'Contato', href: ROUTES.contato },

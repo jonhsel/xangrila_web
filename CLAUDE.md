@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 7 estão concluídas. As fases 8 e 9 estão em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 7.5 estão concluídas. As fases 8 e 9 estão em andamento.
 
 ---
 
@@ -23,6 +23,7 @@ Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), d
 | Calendário | react-day-picker | ^9.14.0 |
 | QR Code | qrcode.react | ^4.2.0 |
 | Ícones | lucide-react | ^1.6.0 |
+| Email | resend | ^4.x |
 
 ---
 
@@ -66,12 +67,13 @@ app/globals.css
 | 5 | Sistema de Reservas (wizard multi-step + auth OTP) | ✅ Concluída |
 | 6 | Pagamentos PIX via Mercado Pago | ✅ Concluída |
 | 7 | Área do Cliente (auth SMS/OTP, minhas-reservas) | ✅ Concluída |
+| 7.5 | Melhorias e customizações (perfil, emails, carrossel, galeria, acomodações) | ✅ Concluída |
 | 8 | Painel Administrativo (dashboard, gestão) | 🚧 Em andamento |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | 🚧 Em andamento |
 
 ---
 
-## O que já existe no projeto (Fases 1–7)
+## O que já existe no projeto (Fases 1–7.5)
 
 ### Estrutura de pastas atual
 
@@ -81,6 +83,7 @@ xangrila_web/
 │   ├── (public)/
 │   │   ├── layout.tsx
 │   │   ├── page.tsx                  # Landing page
+│   │   ├── acomodacoes/page.tsx      # Fase 7.5 — Página de acomodações com galeria e regras
 │   │   ├── contato/page.tsx          # Formulário → WhatsApp
 │   │   ├── day-use/page.tsx          # Placeholder + CTA
 │   │   ├── loading.tsx               # Skeleton animate-pulse
@@ -101,7 +104,9 @@ xangrila_web/
 │   ├── api/
 │   │   ├── auth/
 │   │   │   ├── vincular-cliente/
-│   │   │   │   └── route.ts          # POST — busca/cria cliente após OTP
+│   │   │   │   └── route.ts          # POST — busca/cria cliente após OTP (retorna email)
+│   │   │   ├── atualizar-perfil/
+│   │   │   │   └── route.ts          # PATCH — salva nome e email do cliente (Fase 7.5)
 │   │   │   └── logout/
 │   │   │       └── route.ts          # POST — encerra sessão (Fase 7)
 │   │   ├── disponibilidade/
@@ -124,10 +129,14 @@ xangrila_web/
 │   │   ├── footer.tsx                # 4 colunas
 │   │   └── client-header.tsx         # Fase 7 — Header da área do cliente
 │   └── features/
-│       ├── home-content.tsx          # Landing page completa
+│       ├── home-content.tsx          # Landing page (hero carrossel + galeria de fotos)
+│       ├── hero-carousel.tsx         # Fase 7.5 — Slideshow automático no hero
+│       ├── photo-gallery.tsx         # Fase 7.5 — Grid de fotos com lightbox
+│       ├── acomodacoes-content.tsx   # Fase 7.5 — Conteúdo da página /acomodacoes
 │       ├── whatsapp-button.tsx       # Botão flutuante
 │       └── reserva/
-│           ├── auth-gate.tsx         # Tela OTP (envio + verificação + timer)
+│           ├── auth-gate.tsx         # Tela OTP (detecta perfil incompleto após auth)
+│           ├── client-profile-form.tsx # Fase 7.5 — Formulário nome + email pós-OTP
 │           ├── step-indicator.tsx    # Barra de progresso 3 steps
 │           ├── date-selector.tsx     # Step 1 — calendário de intervalo
 │           ├── room-selector.tsx     # Step 2 — cards de quartos + preços
@@ -140,8 +149,13 @@ xangrila_web/
 │   │   ├── server.ts                 # @supabase/ssr — NÃO alterar
 │   │   └── admin.ts                  # service_role — NÃO alterar
 │   ├── api/
-│   │   └── mercadopago/
-│   │       └── client.ts             # Fase 6 — SDK Mercado Pago configurado
+│   │   ├── mercadopago/
+│   │   │   └── client.ts             # Fase 6 — SDK Mercado Pago configurado
+│   │   └── email/
+│   │       ├── client.ts             # Fase 7.5 — Client Resend (graceful se sem chave)
+│   │       └── templates/
+│   │           ├── confirmacao-cliente.ts  # Fase 7.5 — Email HTML para o hóspede
+│   │           └── notificacao-pousada.ts  # Fase 7.5 — Email HTML para a pousada (VIP/Frequente)
 │   ├── hooks/
 │   │   └── use-reserva.ts            # Zustand store (sessionStorage SSR-safe)
 │   ├── constants/
@@ -155,11 +169,18 @@ xangrila_web/
 │       ├── date.ts                   # 14 funções de data
 │       └── format.ts                 # 16 funções de formatação
 ├── types/
-│   ├── database.ts                   # 25 tabelas — NÃO alterar
+│   ├── database.ts                   # 25 tabelas (+ email_cliente em clientes_xngrl) — NÃO alterar
 │   ├── index.ts                      # Row aliases + constantes — NÃO alterar
 │   └── pagamentos.ts                 # Fase 6 — PixResponse, WebhookMercadoPago, PaymentStatus
+├── public/
+│   └── images/
+│       ├── hero/                     # Fase 7.5 — 4 imagens para o carrossel (hero-1 a hero-4)
+│       ├── galeria/                  # Fase 7.5 — 8 imagens da galeria da landing page
+│       └── acomodacoes/              # Fase 7.5 — 10 imagens das acomodações
 └── middleware.ts                     # NÃO alterar
 ```
+
+> **Nota imagens:** Os arquivos em `public/images/` são SVG placeholders para desenvolvimento. Substituir pelos arquivos reais (`.jpg` ou `.webp`) fornecidos pelo proprietário antes do deploy, atualizando as extensões nos componentes `hero-carousel.tsx`, `home-content.tsx` e `acomodacoes-content.tsx`.
 
 ### Pastas ainda NÃO criadas (Fases 8–9)
 
@@ -186,7 +207,7 @@ vercel.json                           # Fase 9
 |---|---|
 | `empresa` | Dados da empresa/pousada |
 | `acomodacoes` | Unidades disponíveis (Casa, Chalé) |
-| `clientes_xngrl` | Clientes cadastrados |
+| `clientes_xngrl` | Clientes cadastrados (+ `email_cliente` adicionado na Fase 7.5) |
 | `pre_reservas` | Pré-reservas aguardando pagamento |
 | `reservas_confirmadas` | Reservas com pagamento confirmado |
 | `disponibilidade_quartos` | Bloqueios por data/unidade |
@@ -378,8 +399,13 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 
 ### Mercado Pago
 - [ ] Trocar credenciais `TEST-...` por `APP_USR-...` (produção) no painel Vercel
-- [ ] Substituir email hardcoded `jonhselmo.engcomp@gmail.com` em `app/api/pagamentos/pix/gerar/route.ts` pelo email real da pousada ou implementar campo email no cadastro do cliente
+- [ ] Substituir email hardcoded `jonhselmo.engcomp@gmail.com` em `app/api/pagamentos/pix/gerar/route.ts` pelo email real da pousada
 - [ ] Configurar webhook no painel MP apontando para URL de produção: `https://[dominio]/api/webhooks/mercadopago`
+
+### Emails (Resend — Fase 7.5)
+- [ ] Configurar `RESEND_API_KEY` no painel Vercel
+- [ ] Verificar domínio `pousadaxangrila.com.br` no painel do Resend para envio com remetente `noreply@pousadaxangrila.com.br`
+- [ ] Substituir fotos placeholder em `public/images/` por fotos reais (hero, galeria, acomodações)
 
 ### Variáveis de Ambiente
 - [ ] `NEXT_PUBLIC_APP_URL` → URL de produção (sem barra final)

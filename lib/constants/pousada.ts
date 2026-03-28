@@ -28,7 +28,7 @@ export const POUSADA = {
 } as const;
 
 export const ROUTES = {
-  home: '/', sobre: '/sobre', quartos: '/quartos', contato: '/contato',
+  home: '/', sobre: '/sobre', quartos: '/quartos', acomodacoes: '/acomodacoes', contato: '/contato',
   dayUse: '/day-use', reservar: '/reservar', minhasReservas: '/minhas-reservas',
   termos: '/termos', privacidade: '/privacidade',
   admin: { dashboard: '/dashboard', reservas: '/dashboard/reservas', relatorios: '/dashboard/relatorios' },

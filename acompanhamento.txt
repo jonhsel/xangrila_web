@@ -331,6 +331,76 @@ Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
 
 ---
 
+## ✅ CHECKLIST DA FASE 8
+
+Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
+
+### Banco de Dados — Ajustes pré-Fase 8
+
+[x] Tabela `empresa` removida do Supabase (não era utilizada pelo sistema)
+[x] Coluna `empresa_id` removida de `usuarios_admin`
+[x] Coluna `idempresa` removida de `clientes_xngrl`
+[x] Coluna `email` adicionada em `usuarios_admin` (para login admin via email/senha)
+[x] Registro admin inserido em `usuarios_admin` com telefone +5598981672949
+[x] Usuário criado no Supabase Auth (email + senha) vinculado ao email do admin
+
+### Arquivos criados — Auth e Layout
+
+[x] lib/auth/admin.ts — verificarAdmin(): verifica por email (auth email/senha) ou telefone (OTP fallback)
+[x] app/(admin)/layout.tsx — layout protegido: chama verificarAdmin(), renderiza Sidebar + Header
+[x] app/(admin-public)/admin/login/page.tsx — login admin com email + senha (sem Twilio/OTP)
+[x] components/layout/admin-sidebar.tsx — sidebar fixa desktop + Sheet mobile (shadcn)
+[x] components/layout/admin-header.tsx — header com nome do admin, data e dropdown logout
+
+### Arquivos criados — APIs
+
+[x] app/api/admin/metricas/route.ts — KPIs: check-ins/outs hoje, hóspedes ativos, receita mensal, pré-reservas pendentes
+[x] app/api/admin/ocupacao/route.ts — taxa de ocupação diária (?dias=30)
+[x] app/api/admin/reservas/route.ts — lista com filtros: status, tipo, datas, busca
+[x] app/api/admin/reservas/[id]/route.ts — detalhe: reserva + cliente + histórico + pré-reserva
+[x] app/api/admin/reservas/[id]/checkin/route.ts — registra check-in + atraso calculado
+[x] app/api/admin/reservas/[id]/checkout/route.ts — registra check-out + danos + libera bloqueios + atualiza cliente
+[x] app/api/admin/reservas/[id]/cancelar/route.ts — cancela reserva (motivo obrigatório) + libera bloqueios
+[x] app/api/admin/pre-reservas/route.ts — lista (?status=)
+[x] app/api/admin/calendario/route.ts — ocupação mensal por dia (?mes=&ano=)
+[x] app/api/admin/clientes/route.ts — lista com busca e classificação VIP/Frequente/Retorno/Novo
+[x] app/api/admin/clientes/[id]/route.ts — perfil + reservas confirmadas + pré-reservas
+[x] app/api/cron/limpeza/prereservas/route.ts — expira pré-reservas vencidas + libera bloqueios (CRON_SECRET)
+[x] app/api/cron/limpeza/bloqueios/route.ts — limpa bloqueios temporários expirados (CRON_SECRET)
+
+### Arquivos criados — Páginas Admin
+
+[x] app/(admin)/admin/dashboard/page.tsx — KPI cards, gráfico ocupação, pré-reservas pendentes, próximos check-ins
+[x] app/(admin)/admin/dashboard/ocupacao-chart.tsx — AreaChart recharts (dynamic import ssr:false)
+[x] app/(admin)/admin/reservas/page.tsx — lista com filtros: status, tipo, busca
+[x] app/(admin)/admin/reservas/[id]/page.tsx — detalhe + Dialogs: check-in, check-out, cancelamento
+[x] app/(admin)/admin/pre-reservas/page.tsx — Tabs por status + auto-refresh 30s + cópia de código
+[x] app/(admin)/admin/calendario/page.tsx — grade mensal + cores por taxa de ocupação + Dialog por dia
+[x] app/(admin)/admin/clientes/page.tsx — listagem com busca e badges de categoria
+[x] app/(admin)/admin/clientes/[id]/page.tsx — perfil + Tabs: reservas confirmadas / pré-reservas
+[x] app/(admin)/admin/configuracoes/page.tsx — placeholder com 4 cards "Em breve"
+
+### Dependências instaladas
+
+[x] recharts — gráfico de área para ocupação no dashboard
+[x] shadcn/ui: sheet, select, dialog, tabs, switch, textarea — componentes adicionados
+
+### Build
+
+[x] npm run build — ✅ Compiled successfully, 34 páginas, zero erros TypeScript
+
+### Decisões técnicas
+
+- Login admin usa email + senha (Supabase Auth signInWithPassword) — não depende do Twilio/SMS
+- Rota group (admin-public) criada separadamente de (admin) para evitar loop de redirect no /admin/login
+- verificarAdmin() verifica user.email contra usuarios_admin.email; fallback para user.phone se OTP
+- Todos os redirects de auth agora apontam para /admin/login (não mais /login)
+- recharts importado via dynamic() com ssr:false para evitar erros de SSR
+- Tooltip formatter sem anotação de tipo explícita — necessário para compatibilidade com os tipos do recharts
+- Categoria de cliente: VIP = gasto >= R$5.000; Frequente = >= 3 reservas; Retorno = >= 1; Novo = 0
+
+---
+
 ## 📊 RESUMO PARA DIAGRAMA DE GANTT
 
 | Fase | Descrição                              | Início       | Conclusão    | Dias |
@@ -343,9 +413,9 @@ Início: 2026-03-28 | Conclusão: 2026-03-28 | Duração: 1 dia
 | 6    | Pagamentos PIX (Mercado Pago)          | 2026-03-27   | 2026-03-27   | 1    |
 | 7    | Área do Cliente (login + reservas)     | 2026-03-28   | 2026-03-28   | 1    |
 | 7.5  | Melhorias (perfil, emails, visual)     | 2026-03-28   | 2026-03-28   | 1    |
-| 8    | Painel Administrativo                  | -            | -            | -    |
+| 8    | Painel Administrativo                  | 2026-03-28   | 2026-03-28   | 1    |
 | 9    | Deploy e Go-Live (Vercel)              | -            | -            | -    |
 
-Total de fases concluídas: 7.5/9
+Total de fases concluídas: 8/9
 Período de desenvolvimento até agora: 2026-03-25 a 2026-03-28 (4 dias corridos)
 

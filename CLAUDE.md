@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 7.5 estão concluídas. As fases 8 e 9 estão em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8 estão concluídas. A fase 9 está em andamento.
 
 ---
 
@@ -24,6 +24,7 @@ Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), d
 | QR Code | qrcode.react | ^4.2.0 |
 | Ícones | lucide-react | ^1.6.0 |
 | Email | resend | ^4.x |
+| Gráficos | recharts | ^2.x |
 
 ---
 
@@ -68,12 +69,12 @@ app/globals.css
 | 6 | Pagamentos PIX via Mercado Pago | ✅ Concluída |
 | 7 | Área do Cliente (auth SMS/OTP, minhas-reservas) | ✅ Concluída |
 | 7.5 | Melhorias e customizações (perfil, emails, carrossel, galeria, acomodações) | ✅ Concluída |
-| 8 | Painel Administrativo (dashboard, gestão) | 🚧 Em andamento |
+| 8 | Painel Administrativo (dashboard, gestão) | ✅ Concluída |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | 🚧 Em andamento |
 
 ---
 
-## O que já existe no projeto (Fases 1–7.5)
+## O que já existe no projeto (Fases 1–8)
 
 ### Estrutura de pastas atual
 
@@ -177,17 +178,61 @@ xangrila_web/
 │       ├── hero/                     # Fase 7.5 — 4 imagens para o carrossel (hero-1 a hero-4)
 │       ├── galeria/                  # Fase 7.5 — 8 imagens da galeria da landing page
 │       └── acomodacoes/              # Fase 7.5 — 10 imagens das acomodações
+├── app/
+│   ├── (admin)/                      # Fase 8 — Grupo de rotas protegidas pelo layout admin
+│   │   ├── layout.tsx                # Chama verificarAdmin(), renderiza Sidebar + Header
+│   │   └── admin/
+│   │       ├── dashboard/
+│   │       │   ├── page.tsx          # KPIs, gráfico de ocupação, próximos check-ins
+│   │       │   └── ocupacao-chart.tsx # AreaChart (recharts, dynamic import ssr:false)
+│   │       ├── reservas/
+│   │       │   ├── page.tsx          # Lista com filtros: status, tipo, busca
+│   │       │   └── [id]/page.tsx     # Detalhe + Dialogs: check-in, check-out, cancelamento
+│   │       ├── pre-reservas/
+│   │       │   └── page.tsx          # Tabs por status + auto-refresh 30s
+│   │       ├── calendario/
+│   │       │   └── page.tsx          # Grade mensal de ocupação + Dialog por dia
+│   │       ├── clientes/
+│   │       │   ├── page.tsx          # Listagem com busca e badges de categoria
+│   │       │   └── [id]/page.tsx     # Perfil + Tabs: reservas / pré-reservas
+│   │       └── configuracoes/
+│   │           └── page.tsx          # Placeholder cards "Em breve"
+│   ├── (admin-public)/               # Fase 8 — Grupo público (sem auth) para login admin
+│   │   └── admin/login/
+│   │       └── page.tsx              # Login admin com email + senha (sem Twilio/OTP)
+│   ├── api/
+│   │   ├── admin/
+│   │   │   ├── metricas/route.ts     # GET — KPIs do dashboard
+│   │   │   ├── ocupacao/route.ts     # GET — taxa diária de ocupação (?dias=30)
+│   │   │   ├── reservas/
+│   │   │   │   ├── route.ts          # GET — lista com filtros
+│   │   │   │   └── [id]/
+│   │   │   │       ├── route.ts      # GET — detalhe da reserva
+│   │   │   │       ├── checkin/route.ts   # POST — registra check-in
+│   │   │   │       ├── checkout/route.ts  # POST — registra check-out
+│   │   │   │       └── cancelar/route.ts  # POST — cancela reserva
+│   │   │   ├── pre-reservas/route.ts # GET — lista (?status=)
+│   │   │   ├── calendario/route.ts   # GET — ocupação mensal (?mes=&ano=)
+│   │   │   └── clientes/
+│   │   │       ├── route.ts          # GET — lista (?busca=)
+│   │   │       └── [id]/route.ts     # GET — perfil + histórico
+│   │   └── cron/
+│   │       └── limpeza/
+│   │           ├── prereservas/route.ts  # GET (CRON_SECRET) — expira pré-reservas vencidas
+│   │           └── bloqueios/route.ts    # GET (CRON_SECRET) — limpa bloqueios temporários
+├── components/layout/
+│   ├── admin-sidebar.tsx             # Fase 8 — Sidebar fixa desktop + Sheet mobile
+│   └── admin-header.tsx             # Fase 8 — Header com nome, data e dropdown logout
+├── lib/auth/
+│   └── admin.ts                      # Fase 8 — verificarAdmin(): verifica por email ou telefone
 └── middleware.ts                     # NÃO alterar
 ```
 
 > **Nota imagens:** Os arquivos em `public/images/` são SVG placeholders para desenvolvimento. Substituir pelos arquivos reais (`.jpg` ou `.webp`) fornecidos pelo proprietário antes do deploy, atualizando as extensões nos componentes `hero-carousel.tsx`, `home-content.tsx` e `acomodacoes-content.tsx`.
 
-### Pastas ainda NÃO criadas (Fases 8–9)
+### Pastas ainda NÃO criadas (Fase 9)
 
 ```
-app/(admin)/                          # Fase 8 — Painel admin
-lib/auth/                             # Fase 8 — Verificação admin
-components/layout/admin-*.tsx         # Fase 8
 vercel.json                           # Fase 9
 ```
 
@@ -196,7 +241,7 @@ vercel.json                           # Fase 9
 ## Banco de Dados — Supabase (Fase 2 concluída)
 
 ### Totais configurados
-- **23 tabelas** com RLS ativo
+- **22 tabelas** com RLS ativo (tabela `empresa` removida na Fase 8)
 - **13+ functions** SQL
 - **2 triggers** automáticos
 - **65–70 policies** de segurança
@@ -205,7 +250,6 @@ vercel.json                           # Fase 9
 
 | Tabela | Descrição |
 |---|---|
-| `empresa` | Dados da empresa/pousada |
 | `acomodacoes` | Unidades disponíveis (Casa, Chalé) |
 | `clientes_xngrl` | Clientes cadastrados (+ `email_cliente` adicionado na Fase 7.5) |
 | `pre_reservas` | Pré-reservas aguardando pagamento |
@@ -221,7 +265,7 @@ vercel.json                           # Fase 9
 | `day_use_config` | Configuração do day use |
 | `day_use_reservations` | Reservas de day use |
 | `holidays` | Feriados |
-| `usuarios_admin` | Admins e recepcionistas |
+| `usuarios_admin` | Admins e recepcionistas (+ coluna `email` adicionada na Fase 8) |
 | `metricas_diarias` | KPIs diários |
 | `destinatarios_relatorios` | Destinatários de relatórios |
 | `historico_relatorios` | Histórico de relatórios enviados |
@@ -366,18 +410,12 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 3. **lib/utils/index.ts** — criado como barrel export (re-exporta `cn`, `date` e `format`)
 4. **@supabase/auth-helpers-nextjs removido** — substituído por `@supabase/ssr` nos 3 clientes
 5. **Supabase JS v2.100+ / type inference** — nas API routes que usam `createAdminClient()`, queries `.from()` e `.rpc()` requerem cast explícito (`as any` + type assertion no resultado) para contornar inferência de `never`. Não reverter — é compatibilidade com `@supabase/supabase-js ^2.100.0`
+6. **Login admin via email/senha** — o painel admin (`/admin/*`) usa login com email+senha em `app/(admin-public)/admin/login/page.tsx`, **não** OTP via SMS. `verificarAdmin()` em `lib/auth/admin.ts` verifica `user.email` contra `usuarios_admin.email` (ou `user.phone` contra `telefone_whatsapp` como fallback). Não reverter para OTP — Twilio trial não envia SMS para números não verificados.
+7. **`app/(admin-public)` route group** — grupo de rotas sem proteção de auth, necessário para que `/admin/login` não entre em loop com o layout `(admin)`. Coexiste com `(admin)` porque as URLs finais não se sobrepõem.
 
 ---
 
 ## Próximas Fases a Implementar
-
-### Fase 8 — Painel Administrativo
-- Verificação admin via `lib/auth/admin.ts` + tabela `usuarios_admin`
-- Layout com sidebar e header em `app/(admin)/`
-- Dashboard com KPIs em tempo real
-- Gestão de reservas com check-in/checkout
-- Calendário de ocupação mensal
-- Perfil de clientes (VIP, Frequente)
 
 ### Fase 9 — Deploy
 - `vercel.json` com cron jobs e região `gru1` (São Paulo)

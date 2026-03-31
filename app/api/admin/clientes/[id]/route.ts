@@ -23,6 +23,31 @@ export async function GET(
       return NextResponse.json({ error: 'Cliente não encontrado' }, { status: 404 });
     }
 
+    // Calcular estatísticas em tempo real (não depender dos campos da tabela)
+    const { data: statsReservas } = await (supabase
+      .from('reservas_confirmadas') as any)
+      .select('valor_total, status, data_checkin')
+      .eq('cliente_id', id)
+      .in('status', ['confirmada', 'concluida']);
+
+    const statsCalculadas = {
+      total_reservas: (statsReservas || []).length,
+      valor_total_gasto: (statsReservas || []).reduce(
+        (acc: number, r: any) => acc + Number(r.valor_total || 0), 0
+      ),
+      ultima_reserva: (statsReservas || []).length > 0
+        ? (statsReservas || []).sort(
+            (a: any, b: any) => new Date(b.data_checkin).getTime() - new Date(a.data_checkin).getTime()
+          )[0]?.data_checkin
+        : null,
+    };
+
+    // Sobrescrever dados estáticos com dados calculados em tempo real
+    cliente.total_reservas = statsCalculadas.total_reservas;
+    cliente.valor_total_gasto = statsCalculadas.valor_total_gasto;
+    cliente.ultima_reserva = statsCalculadas.ultima_reserva;
+    cliente.score_cliente = statsCalculadas.total_reservas + Math.floor(statsCalculadas.valor_total_gasto / 500);
+
     // Histórico de reservas
     const { data: reservas } = await (supabase
       .from('reservas_confirmadas') as any)

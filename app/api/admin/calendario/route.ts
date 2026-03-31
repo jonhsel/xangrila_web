@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         checkin_realizado,
         clientes_xngrl (nome_cliente)
       `)
-      .in('status', ['confirmada', 'pendente', 'concluida'])
+      .in('status', ['confirmada', 'concluida'])
       .lte('data_checkin', ultimoDia)
       .gte('data_checkout', primeiroDia);
 

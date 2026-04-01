@@ -10,6 +10,7 @@ const navLinks = [
   { label: 'Início', href: ROUTES.home },
   { label: 'Acomodações', href: ROUTES.acomodacoes },
   { label: 'Day Use', href: ROUTES.dayUse },
+  { label: 'Expedições', href: ROUTES.expedicoes },
   { label: 'Sobre', href: ROUTES.sobre },
   { label: 'Contato', href: ROUTES.contato },
 ];

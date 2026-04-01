@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     const payment = await paymentClient.create({
       body: {
         transaction_amount: Number(preReserva.valor_sinal),
-        description: `Sinal - Reserva Pousada Xangrilá ${reservaId}`,
+        description: `Reserva Pousada Xangrilá ${reservaId}`,
         payment_method_id: 'pix',
         external_reference: reservaId,
         payer: {
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
         notification_url: `${appUrl}/api/webhooks/mercadopago`,
         metadata: {
           reserva_id: reservaId,
-          tipo: 'sinal_reserva',
+          tipo: 'reserva_integral',
           cliente_id: preReserva.cliente_id,
         },
       },

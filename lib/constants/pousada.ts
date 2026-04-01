@@ -29,7 +29,7 @@ export const POUSADA = {
 
 export const ROUTES = {
   home: '/', sobre: '/sobre', quartos: '/quartos', acomodacoes: '/acomodacoes', contato: '/contato',
-  dayUse: '/day-use', reservar: '/reservar', minhasReservas: '/minhas-reservas',
+  dayUse: '/day-use', expedicoes: '/expedicoes', reservar: '/reservar', minhasReservas: '/minhas-reservas',
   termos: '/termos', privacidade: '/privacidade',
   admin: { dashboard: '/dashboard', reservas: '/dashboard/reservas', relatorios: '/dashboard/relatorios' },
   api: { disponibilidade: '/api/disponibilidade', reservasCriar: '/api/reservas/criar', reservasStatus: '/api/reservas/status' },

@@ -47,14 +47,33 @@ export async function GET(request: NextRequest) {
       statsPorCliente.set(r.cliente_id, existing);
     }
 
+    // Buscar todas as reservas de day use confirmadas
+    const { data: todosDayUses } = await (supabase
+      .from('day_use_reservations') as any)
+      .select('phone_number, total_amount, status')
+      .in('status', ['confirmed', 'completed']);
+
+    // Agrupar day use por telefone
+    const dayUsePorTelefone = new Map<string, { total: number; valor: number }>();
+    for (const du of (todosDayUses || [])) {
+      const existing = dayUsePorTelefone.get(du.phone_number) || { total: 0, valor: 0 };
+      existing.total += 1;
+      existing.valor += Number(du.total_amount || 0);
+      dayUsePorTelefone.set(du.phone_number, existing);
+    }
+
     // Sobrescrever estatísticas nos dados dos clientes e classificar
     resultado = resultado.map((c: any) => {
       const stats = statsPorCliente.get(c.id_cliente);
+      const duStats = dayUsePorTelefone.get(c.telefonewhatsapp_cliente);
       const enriched = {
         ...c,
         total_reservas: stats?.total || 0,
         valor_total_gasto: stats?.valor || 0,
         ultima_reserva: stats?.ultima || null,
+        total_day_uses: duStats?.total || 0,
+        valor_total_day_use: duStats?.valor || 0,
+        valor_total_gasto_completo: (stats?.valor || 0) + (duStats?.valor || 0),
         score_cliente: (stats?.total || 0) + Math.floor((stats?.valor || 0) / 500),
       };
       return {

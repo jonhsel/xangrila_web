@@ -88,10 +88,27 @@ export default function ClientePerfilPage() {
             <p className="text-2xl font-bold">{cliente.total_reservas || 0}</p>
           </div>
           <div>
-            <p className="text-muted-foreground">Total Gasto</p>
+            <p className="text-muted-foreground">Hospedagem</p>
             <p className="text-2xl font-bold text-green-600">
               {formatarMoeda(cliente.valor_total_gasto || 0)}
             </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Day Uses</p>
+            <p className="text-2xl font-bold">{cliente.total_day_uses || 0}</p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Gastos Day Use</p>
+            <p className="text-2xl font-bold text-blue-600">
+              {formatarMoeda(cliente.valor_total_day_use || 0)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">Gasto Total</p>
+            <p className="text-2xl font-bold text-primary">
+              {formatarMoeda(cliente.valor_total_gasto_completo || 0)}
+            </p>
+            <p className="text-xs text-muted-foreground">Hospedagem + Day Use</p>
           </div>
           {cliente.score_cliente && (
             <div>

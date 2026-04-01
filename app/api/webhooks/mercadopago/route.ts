@@ -74,13 +74,22 @@ async function processarWebhook(request: NextRequest): Promise<void> {
       return;
     }
 
-    const reservaId = payment.external_reference;
-    if (!reservaId) {
+    const externalRef = payment.external_reference;
+    if (!externalRef) {
       console.error('[Webhook MP] Sem external_reference no pagamento');
       return;
     }
 
     const admin = createAdminClient();
+
+    if (externalRef.startsWith('DU-')) {
+      // Processar pagamento de Day Use
+      await processarPagamentoDayUse(admin, externalRef, payment);
+      return;
+    }
+
+    // Processar pagamento de reserva de quarto
+    const reservaId = externalRef;
 
     // Verificar se a reserva já foi confirmada (proteção contra replay)
     type ReservaSelect = Pick<ReservaRow, 'reserva_id' | 'status'>;
@@ -243,5 +252,47 @@ async function processarWebhook(request: NextRequest): Promise<void> {
     }
   } catch (err) {
     console.error('[Webhook MP] Erro ao processar pagamento:', err);
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function processarPagamentoDayUse(admin: any, reservationCode: string, payment: any): Promise<void> {
+  try {
+    // Buscar reserva
+    const { data: reserva } = await (admin.from('day_use_reservations') as any)
+      .select('reservation_code, status, payment_status')
+      .eq('reservation_code', reservationCode)
+      .single();
+
+    if (!reserva) {
+      console.error(`[Webhook MP] Day Use ${reservationCode} não encontrado`);
+      return;
+    }
+
+    // Proteção contra replay
+    if (reserva.status === 'confirmed' || reserva.payment_status === 'confirmed') {
+      console.log(`[Webhook MP] Day Use ${reservationCode} já confirmado — ignorando`);
+      return;
+    }
+
+    if (payment.status === 'approved') {
+      const { error } = await (admin.from('day_use_reservations') as any)
+        .update({
+          status: 'confirmed',
+          payment_status: 'confirmed',
+          payment_confirmation_date: new Date().toISOString(),
+          payment_method: 'pix',
+        })
+        .eq('reservation_code', reservationCode);
+
+      if (error) {
+        console.error(`[Webhook MP] Erro ao confirmar Day Use ${reservationCode}:`, error);
+        return;
+      }
+
+      console.log(`[Webhook MP] ✅ Day Use ${reservationCode} confirmado — Pagamento MP: ${payment.id}`);
+    }
+  } catch (err) {
+    console.error('[Webhook MP] Erro ao processar Day Use:', err);
   }
 }

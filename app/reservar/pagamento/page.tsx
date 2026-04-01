@@ -55,9 +55,9 @@ function PagamentoContent() {
             expiraEm: data.expiraEm,
           });
         } else if (data.valorTotal) {
-          // Calcular sinal de 50% como fallback
+          // Pagamento integral — 100%
           setDadosPagamento({
-            valor: Number(data.valorTotal) * 0.5,
+            valor: Number(data.valorTotal),
             expiraEm: data.expiraEm ?? new Date(Date.now() + 30 * 60 * 1000).toISOString(),
           });
         } else {
@@ -103,11 +103,7 @@ function PagamentoContent() {
       {dataCheckin && dataCheckout && valorTotal > 0 && (
         <div className="rounded-lg border bg-muted/30 px-4 py-3 text-sm">
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Valor total da reserva</span>
-            <span className="font-semibold">{formatarMoeda(valorTotal)}</span>
-          </div>
-          <div className="flex justify-between border-t mt-2 pt-2">
-            <span className="text-muted-foreground">Sinal a pagar agora (50%)</span>
+            <span className="text-muted-foreground">Valor a pagar</span>
             <span className="font-bold text-primary">{formatarMoeda(dadosPagamento.valor)}</span>
           </div>
         </div>

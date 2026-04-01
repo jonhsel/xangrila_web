@@ -170,17 +170,9 @@ function ConfirmacaoContent() {
               )}
               {dados.valorPago > 0 && (
                 <div className="col-span-2 border-t pt-3">
-                  <p className="text-muted-foreground">Valor pago (sinal)</p>
+                  <p className="text-muted-foreground">Valor pago</p>
                   <p className="text-lg font-bold text-primary">
                     {formatarMoeda(dados.valorPago)}
-                  </p>
-                </div>
-              )}
-              {dados.valorTotal > 0 && dados.valorPago > 0 && dados.valorTotal > dados.valorPago && (
-                <div className="col-span-2">
-                  <p className="text-muted-foreground">Restante na chegada</p>
-                  <p className="font-semibold">
-                    {formatarMoeda(dados.valorTotal - dados.valorPago)}
                   </p>
                 </div>
               )}

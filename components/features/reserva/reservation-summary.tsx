@@ -122,8 +122,6 @@ export function ReservationSummary() {
     }
   }
 
-  const valorSinal = valorTotal * 0.5;
-
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="text-center">
@@ -243,12 +241,8 @@ export function ReservationSummary() {
             <span>{formatarMoeda(valorTotal)}</span>
           </div>
           <div className="flex justify-between border-t pt-2">
-            <span className="font-medium">Sinal (50%)</span>
-            <span className="font-bold text-primary">{formatarMoeda(valorSinal)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Restante na chegada</span>
-            <span>{formatarMoeda(valorSinal)}</span>
+            <span className="font-bold">Total a pagar</span>
+            <span className="font-bold text-primary">{formatarMoeda(valorTotal)}</span>
           </div>
         </CardContent>
       </Card>

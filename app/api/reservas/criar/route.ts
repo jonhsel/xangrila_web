@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const reservaId = gerarCodigoReserva();
 
     // 5. Calcular valores
-    const valorSinal = Math.round(valorTotal * 0.5 * 100) / 100;
+    const valorSinal = valorTotal; // Pagamento integral — 100%
     const expiraEm = new Date(Date.now() + 30 * 60 * 1000).toISOString(); // 30 min
 
     // 6. Chamar function SQL verificar_e_criar_reserva

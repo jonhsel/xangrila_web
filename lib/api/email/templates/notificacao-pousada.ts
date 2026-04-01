@@ -54,7 +54,7 @@ export function gerarEmailNotificacaoPousada(data: NotificacaoPousadaData): {
       <!-- Resumo rápido -->
       <div style="background:#e8f5e9;border-radius:8px;padding:16px;margin-bottom:24px;text-align:center;">
         <span style="font-size:24px;font-weight:700;color:#2e7d32;">R$ ${data.valorPago.toFixed(2).replace('.', ',')}</span>
-        <p style="margin:4px 0 0;font-size:13px;color:#666;">Sinal pago via ${data.metodoPagamento}</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#666;">Pagamento integral via ${data.metodoPagamento}</p>
       </div>
 
       <!-- Dados do Cliente -->
@@ -96,8 +96,7 @@ export function gerarEmailNotificacaoPousada(data: NotificacaoPousadaData): {
         </h2>
         <table style="width:100%;font-size:13px;border-collapse:collapse;">
           <tr><td style="padding:4px 0;color:#666;width:140px;">Valor Total:</td><td style="font-weight:600;">R$ ${data.valorTotal.toFixed(2).replace('.', ',')}</td></tr>
-          <tr><td style="padding:4px 0;color:#666;">Sinal Pago:</td><td style="font-weight:600;color:#2e7d32;">R$ ${data.valorPago.toFixed(2).replace('.', ',')}</td></tr>
-          ${data.valorRestante > 0 ? `<tr><td style="padding:4px 0;color:#666;">A receber no check-in:</td><td style="font-weight:600;color:#e65100;">R$ ${data.valorRestante.toFixed(2).replace('.', ',')}</td></tr>` : ''}
+          <tr><td style="padding:4px 0;color:#666;">Valor Pago:</td><td style="font-weight:600;color:#2e7d32;">R$ ${data.valorPago.toFixed(2).replace('.', ',')}</td></tr>
         </table>
       </div>
 

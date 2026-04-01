@@ -48,6 +48,32 @@ export async function GET(
     cliente.ultima_reserva = statsCalculadas.ultima_reserva;
     cliente.score_cliente = statsCalculadas.total_reservas + Math.floor(statsCalculadas.valor_total_gasto / 500);
 
+    // Buscar estatísticas de Day Use do cliente (pelo telefone)
+    const telefoneCliente = cliente.telefonewhatsapp_cliente;
+    const { data: dayUseReservas } = await (supabase
+      .from('day_use_reservations') as any)
+      .select('total_amount, status, reservation_date')
+      .eq('phone_number', telefoneCliente)
+      .in('status', ['confirmed', 'completed']);
+
+    const statsDayUse = {
+      total_day_uses: (dayUseReservas || []).length,
+      valor_total_day_use: (dayUseReservas || []).reduce(
+        (acc: number, r: any) => acc + Number(r.total_amount || 0), 0
+      ),
+      ultimo_day_use: (dayUseReservas || []).length > 0
+        ? (dayUseReservas || []).sort(
+            (a: any, b: any) => new Date(b.reservation_date).getTime() - new Date(a.reservation_date).getTime()
+          )[0]?.reservation_date
+        : null,
+    };
+
+    cliente.total_day_uses = statsDayUse.total_day_uses;
+    cliente.valor_total_day_use = statsDayUse.valor_total_day_use;
+    cliente.ultimo_day_use = statsDayUse.ultimo_day_use;
+    cliente.valor_total_gasto_completo =
+      statsCalculadas.valor_total_gasto + statsDayUse.valor_total_day_use;
+
     // Histórico de reservas
     const { data: reservas } = await (supabase
       .from('reservas_confirmadas') as any)

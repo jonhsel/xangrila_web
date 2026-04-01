@@ -168,6 +168,9 @@ export function RoomSelector() {
         <p className="mt-1 text-muted-foreground">
           {totalDiarias} {totalDiarias === 1 ? 'diária' : 'diárias'} · Selecione o tipo e o número de pessoas.
         </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          A disponibilidade exibida é referente ao período selecionado.
+        </p>
       </div>
 
       {/* Badge de Pacote Especial */}
@@ -218,8 +221,16 @@ export function RoomSelector() {
                   {tipo.tipo}
                 </CardTitle>
                 <div className="flex gap-2">
-                  {esgotado && (
+                  {esgotado ? (
                     <Badge variant="destructive" className="text-xs">Esgotado</Badge>
+                  ) : tipo.disponiveis <= 2 ? (
+                    <Badge className="text-xs bg-orange-500 hover:bg-orange-500">
+                      Últimas {tipo.disponiveis} {tipo.disponiveis === 1 ? 'unidade' : 'unidades'}!
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">
+                      {tipo.disponiveis} {tipo.disponiveis === 1 ? 'disponível' : 'disponíveis'}
+                    </Badge>
                   )}
                   {!esgotado && selecionado && (
                     <Badge className="text-xs">Selecionado</Badge>

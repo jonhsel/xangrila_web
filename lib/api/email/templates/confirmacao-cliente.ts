@@ -92,15 +92,9 @@ export function gerarEmailConfirmacaoCliente(data: ConfirmacaoClienteData): {
             <td style="padding:6px 0;font-weight:600;color:#333;">R$ ${data.valorTotal.toFixed(2).replace('.', ',')}</td>
           </tr>
           <tr>
-            <td style="padding:6px 0;color:#666;">Sinal Pago (PIX):</td>
+            <td style="padding:6px 0;color:#666;">Valor Pago (PIX):</td>
             <td style="padding:6px 0;font-weight:600;color:#2e7d32;">R$ ${data.valorPago.toFixed(2).replace('.', ',')}</td>
           </tr>
-          ${data.valorRestante > 0 ? `
-          <tr>
-            <td style="padding:6px 0;color:#666;">Restante (no check-in):</td>
-            <td style="padding:6px 0;font-weight:600;color:#e65100;">R$ ${data.valorRestante.toFixed(2).replace('.', ',')}</td>
-          </tr>
-          ` : ''}
         </table>
       </div>
 

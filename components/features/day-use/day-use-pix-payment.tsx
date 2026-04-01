@@ -14,10 +14,10 @@ import type { PixResponse } from '@/types/pagamentos';
 // TIPOS
 // ============================================
 
-interface PixPaymentProps {
-  reservaId: string;
+interface DayUsePixPaymentProps {
+  reservationCode: string;
   valor: number;
-  expiraEm: string; // ISO string
+  expiraEm: string;
   onConfirmado: () => void;
 }
 
@@ -52,7 +52,6 @@ function useTimer(expiraEm: string) {
   return {
     display: `${String(minutos).padStart(2, '0')}:${String(segundos).padStart(2, '0')}`,
     expirado,
-    segundosRestantes,
   };
 }
 
@@ -60,7 +59,7 @@ function useTimer(expiraEm: string) {
 // COMPONENTE PRINCIPAL
 // ============================================
 
-export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaymentProps) {
+export function DayUsePixPayment({ reservationCode, valor, expiraEm, onConfirmado }: DayUsePixPaymentProps) {
   const [pixData, setPixData] = useState<PixResponse | null>(null);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
@@ -72,13 +71,11 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
 
   const { display: timerDisplay, expirado } = useTimer(expiraEm);
 
-  // Gerar PIX ao montar
   useEffect(() => {
     gerarPix();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservaId]);
+  }, [reservationCode]);
 
-  // Polling de status a cada 5 segundos
   useEffect(() => {
     if (!pixData || expirado) return;
 
@@ -96,10 +93,10 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
     setCarregando(true);
     setErro(null);
     try {
-      const resp = await fetch('/api/pagamentos/pix/gerar', {
+      const resp = await fetch('/api/day-use/pix/gerar', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ reservaId }),
+        body: JSON.stringify({ reservation_code: reservationCode }),
       });
 
       const data: PixResponse = await resp.json();
@@ -123,16 +120,15 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
       if (manual) setVerificando(true);
 
       try {
-        const resp = await fetch(`/api/reservas/${reservaId}/status`);
+        const resp = await fetch(`/api/day-use/${reservationCode}/status`);
         if (!resp.ok) return;
 
         const data = await resp.json();
 
-        // Detectar confirmação via reserva_confirmada.status === 'confirmada'
-        if (data.status === 'confirmada' && !confirmedRef.current) {
+        if ((data.status === 'confirmed' || data.payment_status === 'confirmed') && !confirmedRef.current) {
           confirmedRef.current = true;
           if (pollingRef.current) clearInterval(pollingRef.current);
-          toast.success('Pagamento confirmado! Redirecionando...');
+          toast.success('Pagamento confirmado! Day Use reservado!');
           onConfirmado();
         } else if (manual) {
           toast.info('Aguardando confirmação do pagamento...');
@@ -143,7 +139,7 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
         if (manual) setVerificando(false);
       }
     },
-    [reservaId, onConfirmado]
+    [reservationCode, onConfirmado]
   );
 
   async function copiarCodigo() {
@@ -157,10 +153,6 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
       toast.error('Erro ao copiar. Copie manualmente.');
     }
   }
-
-  // ============================================
-  // ESTADOS DE RENDERIZAÇÃO
-  // ============================================
 
   if (carregando) {
     return (
@@ -195,7 +187,7 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
           <div className="text-center">
             <p className="font-semibold text-orange-700">Tempo expirado</p>
             <p className="text-sm text-muted-foreground">
-              O prazo para pagamento desta reserva expirou. Entre em contato conosco.
+              O prazo para pagamento expirou. Entre em contato conosco via WhatsApp.
             </p>
           </div>
         </CardContent>
@@ -206,7 +198,7 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Pagamento PIX</CardTitle>
+        <CardTitle className="text-xl">Pagamento PIX — Day Use</CardTitle>
         <p className="text-sm text-muted-foreground">
           Escaneie o QR Code ou copie o código abaixo
         </p>
@@ -215,8 +207,14 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
       <CardContent className="space-y-6">
         {/* Valor */}
         <div className="flex items-center justify-between rounded-lg bg-primary/5 px-4 py-3">
-          <span className="text-sm text-muted-foreground">Valor total da reserva</span>
+          <span className="text-sm text-muted-foreground">Valor total</span>
           <span className="text-lg font-bold text-primary">{formatarMoeda(valor)}</span>
+        </div>
+
+        {/* Código da reserva */}
+        <div className="flex items-center justify-between rounded-lg bg-muted/50 px-4 py-2 text-sm">
+          <span className="text-muted-foreground">Código</span>
+          <span className="font-mono font-semibold">{reservationCode}</span>
         </div>
 
         {/* Timer */}
@@ -232,17 +230,12 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
         {pixData?.qr_code && (
           <div className="flex justify-center">
             <div className="rounded-xl border-2 border-primary/20 p-4">
-              <QRCodeSVG
-                value={pixData.qr_code}
-                size={200}
-                level="M"
-                includeMargin
-              />
+              <QRCodeSVG value={pixData.qr_code} size={200} level="M" includeMargin />
             </div>
           </div>
         )}
 
-        {/* Código PIX copiável */}
+        {/* Código copiável */}
         {pixData?.qr_code && (
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
@@ -258,17 +251,12 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
                 onClick={copiarCodigo}
                 className="shrink-0"
               >
-                {copiado ? (
-                  <CheckCircle className="h-4 w-4" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
+                {copiado ? <CheckCircle className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
           </div>
         )}
 
-        {/* Link do ticket MP */}
         {pixData?.ticket_url && (
           <a
             href={pixData.ticket_url}
@@ -281,7 +269,6 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
           </a>
         )}
 
-        {/* Botão de verificação manual */}
         <Button
           variant="outline"
           className="w-full"
@@ -301,7 +288,6 @@ export function PixPayment({ reservaId, valor, expiraEm, onConfirmado }: PixPaym
           )}
         </Button>
 
-        {/* Instrução */}
         <p className="text-center text-xs text-muted-foreground">
           Abra o app do seu banco, escolha Pix e escaneie o QR Code ou cole o código.
           A confirmação é automática e pode levar alguns segundos.

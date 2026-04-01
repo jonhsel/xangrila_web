@@ -555,8 +555,8 @@ Correções críticas de status e estatísticas identificadas em testes manuais:
 | 9.8    |   Domínio configurado + DNS propagado                  | -            | -            | -    | ⬜     | 9.2                     |
 | 9.9    |   Testes de ponta a ponta em produção                  | -            | -            | -    | ⬜     | 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8 |
 
-Total de fases concluídas: 8/9
-Período de desenvolvimento até agora: 2026-03-25 a 2026-03-28 (4 dias corridos)
+Total de fases concluídas: 8.6/9
+Período de desenvolvimento até agora: 2026-03-25 a 2026-04-01 (8 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente
 
 Legenda de dependências:
@@ -583,4 +583,7 @@ Legenda de dependências:
 | 8.6.14 |   F5: Constantes de expedições + barrel export         | 2026-04-01   | 2026-04-01   | 1    | ✅     | 3.6                     |
 | 8.6.15 |   F5: Rota /expedicoes + link no header                | 2026-04-01   | 2026-04-01   | 1    | ✅     | 4.3, 8.6.14             |
 | 8.6.16 |   F5: Página /expedicoes com 3 cards + carrossel       | 2026-04-01   | 2026-04-01   | 1    | ✅     | 8.6.14, 8.6.15          |
+| 8.6.17 |   SQL: ALTER TABLE day_use_config ADD daily_free_limit  | 2026-04-01   | 2026-04-01   | 1    | ✅     | 8.6.2                   |
+| 8.6.18 |   SQL: INSERT day_use_config (registro ativo dev)       | 2026-04-01   | 2026-04-01   | 1    | ✅     | 8.6.17                  |
+| 8.6.19 |   Teste ponta a ponta Day Use (calc→auth→PIX→confirm)   | 2026-04-01   | 2026-04-01   | 1    | ✅     | 8.6.9, 8.6.18           |
 | 8.6.17 |   SQL (manual): ALTER TABLE day_use_config ADD daily_free_limit | -    | -    | -    | ⬜     | 2.1                     |

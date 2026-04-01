@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8 estão concluídas. A fase 9 está em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8.6 estão concluídas. A fase 9 está em andamento.
 
 ---
 
@@ -70,6 +70,7 @@ app/globals.css
 | 7 | Área do Cliente (auth SMS/OTP, minhas-reservas) | ✅ Concluída |
 | 7.5 | Melhorias e customizações (perfil, emails, carrossel, galeria, acomodações) | ✅ Concluída |
 | 8 | Painel Administrativo (dashboard, gestão) | ✅ Concluída |
+| 8.6 | Melhorias Pré-Deploy (pagamento integral, Day Use completo, expedições) | ✅ Concluída |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | 🚧 Em andamento |
 
 ---
@@ -432,13 +433,17 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 ## ⚠️ Checklist de Verificação — Antes do Deploy (Fase 9)
 
 ### Banco de Dados (Supabase)
+- [x] Migration executada em dev: `ALTER TABLE day_use_config ADD COLUMN IF NOT EXISTS daily_free_limit integer DEFAULT 15` — **executar também em produção antes do deploy**
+- [x] Registro de configuração Day Use inserido em dev — **inserir em produção com dados reais**
 - [ ] Inserir registros reais em `acomodacoes` e `precos_acomodacoes` (dados de produção)
 - [ ] Inserir período de reserva ativo em `periodos_reserva` com datas de produção
+- [ ] Inserir configuração real do Day Use em `day_use_config` (preços, capacidade, horários)
 
 ### Mercado Pago
 - [ ] Trocar credenciais `TEST-...` por `APP_USR-...` (produção) no painel Vercel
 - [ ] Substituir email hardcoded `jonhselmo.engcomp@gmail.com` em `app/api/pagamentos/pix/gerar/route.ts` pelo email real da pousada
 - [ ] Configurar webhook no painel MP apontando para URL de produção: `https://[dominio]/api/webhooks/mercadopago`
+- [ ] Configurar webhook também para o Day Use (mesmo endpoint — o código já roteia por prefixo `DU-` vs `PXL-`)
 
 ### Emails (Resend — Fase 7.5)
 - [ ] Configurar `RESEND_API_KEY` no painel Vercel

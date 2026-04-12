@@ -447,6 +447,8 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 5. **Supabase JS v2.100+ / type inference** — nas API routes que usam `createAdminClient()`, queries `.from()` e `.rpc()` requerem cast explícito (`as any` + type assertion no resultado) para contornar inferência de `never`. Não reverter — é compatibilidade com `@supabase/supabase-js ^2.100.0`
 6. **Login admin via email/senha** — o painel admin (`/admin/*`) usa login com email+senha em `app/(admin-public)/admin/login/page.tsx`, **não** OTP via SMS. `verificarAdmin()` em `lib/auth/admin.ts` verifica `user.email` contra `usuarios_admin.email` (ou `user.phone` contra `telefone_whatsapp` como fallback). Não reverter para OTP — Twilio trial não envia SMS para números não verificados.
 7. **`app/(admin-public)` route group** — grupo de rotas sem proteção de auth, necessário para que `/admin/login` não entre em loop com o layout `(admin)`. Coexiste com `(admin)` porque as URLs finais não se sobrepõem.
+8. **`reservas_confirmadas.valor_restante` é coluna gerada** — calculada automaticamente pelo banco como `valor_total - valor_pago`. Nunca incluir no INSERT/UPDATE. Qualquer tentativa causa erro `428C9`. (Descoberto na Fase 8.7)
+9. **`reservas_confirmadas.metodo_pagamento` requer migration manual** — coluna não existia no schema original. Foi adicionada via `ALTER TABLE reservas_confirmadas ADD COLUMN IF NOT EXISTS metodo_pagamento TEXT` na Fase 8.7. Executar em produção antes do deploy.
 
 ---
 

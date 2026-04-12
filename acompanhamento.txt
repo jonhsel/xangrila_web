@@ -602,3 +602,7 @@ Legenda de dependências:
 | 8.7.11 |   F4: Link "Day Use" no sidebar admin (ícone Sun)       | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.9                   |
 | 8.7.12 |   Build sem erros TypeScript                            | 2026-04-12   | 2026-04-12   | 1    | ✅     | todos                   |
 | 8.7.13 |   SQL (manual): UPDATE pode_cadastrar_reservas = true   | -            | -            | -    | ⬜     | 2.1                     |
+
+| **8.7 fix** | **Correções pós-implantação Fase 8.7**                 | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7                     |
+| 8.7.f1 |   SQL: ALTER TABLE reservas_confirmadas ADD metodo_pagamento TEXT | 2026-04-12 | 2026-04-12 | 1 | ✅ | 2.1 |
+| 8.7.f2 |   Fix: remover valor_restante do INSERT (coluna gerada no banco) | 2026-04-12 | 2026-04-12 | 1 | ✅ | 8.7.3 |

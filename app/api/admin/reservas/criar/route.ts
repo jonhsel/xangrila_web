@@ -203,7 +203,7 @@ export async function POST(request: NextRequest) {
         tipo_quarto,
         valor_total,
         valor_pago,
-        valor_restante: valorRestante,
+        // valor_restante é coluna gerada (GENERATED ALWAYS AS valor_total - valor_pago)
         status: 'confirmada',
         metodo_pagamento,
         observacoes: obsCompleta,

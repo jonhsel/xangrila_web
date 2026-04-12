@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { formatarMoeda, formatarData } from '@/lib/utils';
-import { Search, Eye } from 'lucide-react';
+import { Search, Eye, Plus } from 'lucide-react';
 import Link from 'next/link';
 
 const STATUS_LABELS: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
@@ -68,7 +68,15 @@ export default function ReservasPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900">Reservas</h1>
+        <Link href="/admin/reservas/nova">
+          <Button>
+            <Plus className="mr-2 h-4 w-4" />
+            Nova Reserva
+          </Button>
+        </Link>
+      </div>
 
       {/* Filtros */}
       <Card className="p-4">

@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8.6 estão concluídas. A fase 9 está em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8.7 estão concluídas. A fase 9 está em andamento.
 
 ---
 
@@ -71,6 +71,7 @@ app/globals.css
 | 7.5 | Melhorias e customizações (perfil, emails, carrossel, galeria, acomodações) | ✅ Concluída |
 | 8 | Painel Administrativo (dashboard, gestão) | ✅ Concluída |
 | 8.6 | Melhorias Pré-Deploy (pagamento integral, Day Use completo, expedições) | ✅ Concluída |
+| 8.7 | Reserva Presencial (Walk-in) com Pagamento em Dinheiro | ✅ Concluída |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | 🚧 Em andamento |
 
 ---
@@ -187,8 +188,11 @@ xangrila_web/
 │   │       │   ├── page.tsx          # KPIs, gráfico de ocupação, próximos check-ins
 │   │       │   └── ocupacao-chart.tsx # AreaChart (recharts, dynamic import ssr:false)
 │   │       ├── reservas/
-│   │       │   ├── page.tsx          # Lista com filtros: status, tipo, busca
+│   │       │   ├── page.tsx          # Lista com filtros + botão "Nova Reserva" (Fase 8.7)
+│   │       │   ├── nova/page.tsx     # Fase 8.7 — Criar reserva presencial (walk-in)
 │   │       │   └── [id]/page.tsx     # Detalhe + Dialogs: check-in, check-out, cancelamento
+│   │       ├── day-use/
+│   │       │   └── page.tsx          # Fase 8.7 — Listagem (Hoje/Próximos/Histórico) + criar walk-in
 │   │       ├── pre-reservas/
 │   │       │   └── page.tsx          # Tabs por status + auto-refresh 30s
 │   │       ├── calendario/
@@ -207,23 +211,32 @@ xangrila_web/
 │   │   │   ├── ocupacao/route.ts     # GET — taxa diária de ocupação (?dias=30)
 │   │   │   ├── reservas/
 │   │   │   │   ├── route.ts          # GET — lista com filtros
+│   │   │   │   ├── criar/route.ts    # Fase 8.7 — POST criar reserva walk-in (direto em confirmadas)
 │   │   │   │   └── [id]/
 │   │   │   │       ├── route.ts      # GET — detalhe da reserva
 │   │   │   │       ├── checkin/route.ts   # POST — registra check-in
 │   │   │   │       ├── checkout/route.ts  # POST — registra check-out
 │   │   │   │       └── cancelar/route.ts  # POST — cancela reserva
+│   │   │   ├── day-use/
+│   │   │   │   ├── route.ts          # Fase 8.7 — GET lista day uses admin (?data_inicio=&data_fim=)
+│   │   │   │   └── criar/route.ts    # Fase 8.7 — POST criar day use walk-in (direto como confirmed)
+│   │   │   ├── disponibilidade/route.ts  # Fase 8.7 — GET disponibilidade com detalhes por dia
 │   │   │   ├── pre-reservas/route.ts # GET — lista (?status=)
 │   │   │   ├── calendario/route.ts   # GET — ocupação mensal (?mes=&ano=)
 │   │   │   └── clientes/
 │   │   │       ├── route.ts          # GET — lista (?busca=)
+│   │   │       ├── buscar/route.ts   # Fase 8.7 — GET busca cliente por telefone (autopreenchimento)
 │   │   │       └── [id]/route.ts     # GET — perfil + histórico
 │   │   └── cron/
 │   │       └── limpeza/
 │   │           ├── prereservas/route.ts  # GET (CRON_SECRET) — expira pré-reservas vencidas
 │   │           └── bloqueios/route.ts    # GET (CRON_SECRET) — limpa bloqueios temporários
 ├── components/layout/
-│   ├── admin-sidebar.tsx             # Fase 8 — Sidebar fixa desktop + Sheet mobile
+│   ├── admin-sidebar.tsx             # Fase 8 — Sidebar (+ link Day Use com ícone Sun na Fase 8.7)
 │   └── admin-header.tsx             # Fase 8 — Header com nome, data e dropdown logout
+├── components/features/admin/
+│   ├── criar-reserva-form.tsx        # Fase 8.7 — Formulário walk-in quartos (6 blocos)
+│   └── criar-dayuse-form.tsx         # Fase 8.7 — Formulário walk-in day use
 ├── lib/auth/
 │   └── admin.ts                      # Fase 8 — verificarAdmin(): verifica por email ou telefone
 └── middleware.ts                     # NÃO alterar
@@ -300,20 +313,41 @@ categoria: 'com_cozinha' | 'sem_cozinha' | null
 
 ```typescript
 export const POUSADA = {
-  nome: 'Pousada Xangrilá',
-  nomeCompleto: 'Pousada Xangrilá - Morros',
-  slogan: 'Seu refúgio perfeito em São Luís',
-  telefone: '(98) 98167-2949',
-  whatsapp: '5598981672949',
-  whatsappLink: 'https://wa.me/5598981672949',
+  nome: 'Pousada Xangri-lá',
+  nomeCompleto: 'Pousada Xangri-lá',
+  slogan: 'O seu refúgio às margens do Rio Una, em Morros/MA',
+  descricao: 'Conforto, natureza e tranquilidade em um só lugar.',
+  telefone: '(98) 99117-8982',
+  whatsapp: '5598991178982',
+  whatsappLink: 'https://wa.me/5598991178982',
   email: 'contato@pousadaxangrila.com.br',
-  endereco: { cidade: 'São Luís', estado: 'MA', completo: 'Morros, São Luís - MA' },
-  horarios: {
-    checkin: { label: '14:00 - 22:00' },
-    checkout: { label: 'Até 12:00' },
-    recepcao: { label: '08:00 - 22:00' },
+  endereco: { logradouro: 'BR-402, Km 42', cidade: 'Morros', estado: 'MA', completo: 'BR-402, Km 42 - Morros - MA' },
+  googleMapsUrl: 'https://maps.google.com/?q=Pousada+Xangri-lá+Morros+São+Luís',
+  googleMapsEmbed: '',
+  social: {
+    instagram: { url: 'https://instagram.com/pousadaxangrilademorros', handle: '@pousadaxangrilademorros' },
+    facebook: { url: 'https://facebook.com/pousadaxangrilademorros', handle: 'pousadaxangrilademorros' },
   },
-}
+  horarios: {
+    checkin: { inicio: '14:00', fim: '22:00', label: '14:00 - 22:00' },
+    checkout: { limite: '12:00', label: 'Até 12:00' },
+    recepcao: { inicio: '08:00', fim: '22:00', label: '08:00 - 22:00' },
+  },
+  seo: {
+    titleDefault: 'Pousada Xangri-lá - Morros, São Luís - MA',
+    titleTemplate: '%s | Pousada Xangri-lá',
+    description: 'O seu refúgio às margens do Rio Una, em Morros/MA. Casas e chalés com conforto e tranquilidade. Reserve agora!',
+    keywords: ['pousada são luís', 'hospedagem morros', 'chalé são luís', 'pousada maranhão', 'pousada xangrilá'],
+  },
+} as const;
+
+export const ROUTES = {
+  home: '/', sobre: '/sobre', quartos: '/quartos', acomodacoes: '/acomodacoes', contato: '/contato',
+  dayUse: '/day-use', expedicoes: '/expedicoes', reservar: '/reservar', minhasReservas: '/minhas-reservas',
+  termos: '/termos', privacidade: '/privacidade',
+  admin: { dashboard: '/dashboard', reservas: '/dashboard/reservas', relatorios: '/dashboard/relatorios' },
+  api: { disponibilidade: '/api/disponibilidade', reservasCriar: '/api/reservas/criar', reservasStatus: '/api/reservas/status' },
+} as const;
 ```
 
 ---

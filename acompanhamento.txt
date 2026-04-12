@@ -587,3 +587,18 @@ Legenda de dependências:
 | 8.6.18 |   SQL: INSERT day_use_config (registro ativo dev)       | 2026-04-01   | 2026-04-01   | 1    | ✅     | 8.6.17                  |
 | 8.6.19 |   Teste ponta a ponta Day Use (calc→auth→PIX→confirm)   | 2026-04-01   | 2026-04-01   | 1    | ✅     | 8.6.9, 8.6.18           |
 | 8.6.17 |   SQL (manual): ALTER TABLE day_use_config ADD daily_free_limit | -    | -    | -    | ⬜     | 2.1                     |
+
+| **8.7**| **Reserva Presencial (Walk-in) com Pagamento em Dinheiro** | 2026-04-12 | 2026-04-12 | 1 | ✅ | 8.6 |
+| 8.7.1  |   F5: API GET /api/admin/clientes/buscar (por telefone) | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.12                    |
+| 8.7.2  |   F6: API GET /api/admin/disponibilidade (detalhes admin)| 2026-04-12  | 2026-04-12   | 1    | ✅     | 2.1                     |
+| 8.7.3  |   F1: API POST /api/admin/reservas/criar (walk-in)      | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.1, 8.7.2            |
+| 8.7.4  |   F3: API POST /api/admin/day-use/criar (walk-in)       | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.6.2                   |
+| 8.7.5  |   F3: API GET /api/admin/day-use (listagem admin)       | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.4                   |
+| 8.7.6  |   F2: Componente CriarReservaForm (walk-in quartos)     | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.3                   |
+| 8.7.7  |   F4: Componente CriarDayuseForm (walk-in day use)      | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.4                   |
+| 8.7.8  |   F2: Página /admin/reservas/nova (nova reserva)        | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.6                   |
+| 8.7.9  |   F4: Página /admin/day-use (gestão day use admin)      | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.7                   |
+| 8.7.10 |   F2: Botão "Nova Reserva" na listagem de reservas      | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.8                   |
+| 8.7.11 |   F4: Link "Day Use" no sidebar admin (ícone Sun)       | 2026-04-12   | 2026-04-12   | 1    | ✅     | 8.7.9                   |
+| 8.7.12 |   Build sem erros TypeScript                            | 2026-04-12   | 2026-04-12   | 1    | ✅     | todos                   |
+| 8.7.13 |   SQL (manual): UPDATE pode_cadastrar_reservas = true   | -            | -            | -    | ⬜     | 2.1                     |

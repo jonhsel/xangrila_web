@@ -14,12 +14,14 @@ import {
   Clock,
   Settings,
   Menu,
+  Sun,
 } from 'lucide-react';
 
 const menuItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/reservas', label: 'Reservas', icon: ClipboardList },
   { href: '/admin/pre-reservas', label: 'Pré-Reservas', icon: Clock },
+  { href: '/admin/day-use', label: 'Day Use', icon: Sun },
   { href: '/admin/calendario', label: 'Calendário', icon: CalendarDays },
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/configuracoes', label: 'Configurações', icon: Settings },

@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run build",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "regions": ["gru1"],
+  "crons": [
+    {
+      "path": "/api/cron/limpeza/prereservas",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/limpeza/bloqueios",
+      "schedule": "0 * * * *"
+    }
+  ]
+}

@@ -73,7 +73,8 @@ export async function POST(request: NextRequest) {
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
-    const emailPagador = email ?? 'contato@pousadaxangrila.com.br';
+    const EMAIL_POUSADA = process.env.POUSADA_EMAIL || 'contato@pousadaxangrilademorros.com.br';
+    const emailPagador = email ?? EMAIL_POUSADA;
 
     // 5. Criar pagamento no MP
     const payment = await paymentClient.create({

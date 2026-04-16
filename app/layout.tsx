@@ -8,17 +8,25 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: {
-    default: POUSADA.seo.titleDefault,
-    template: POUSADA.seo.titleTemplate,
+    default: 'Pousada Xangrilá de Morros - São Luís MA',
+    template: '%s | Pousada Xangrilá de Morros',
   },
-  description: POUSADA.seo.description,
-  keywords: [...POUSADA.seo.keywords],
+  description:
+    'Reserve sua estadia na Pousada Xangrilá de Morros, São Luís - MA. Chalés e casas com conforto, piscina, área de lazer e expedições. Reservas online com pagamento PIX.',
+  keywords: [
+    'pousada', 'morros', 'são luís', 'maranhão', 'hospedagem',
+    'chalé', 'reserva online', 'day use', 'expedições', 'xangrilá',
+  ],
   openGraph: {
-    title: POUSADA.seo.titleDefault,
-    description: POUSADA.seo.description,
+    title: 'Pousada Xangrilá de Morros - São Luís MA',
+    description:
+      'Seu refúgio perfeito em Morros. Chalés e casas, piscina, expedições de quadriciclo, jeep e lancha.',
+    url: 'https://www.pousadaxangrilademorros.com.br',
+    siteName: 'Pousada Xangrilá de Morros',
     locale: 'pt_BR',
     type: 'website',
   },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({

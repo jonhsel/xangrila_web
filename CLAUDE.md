@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8.7 estão concluídas. A fase 9 está em andamento.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8.7 estão concluídas. A fase 9 (Deploy e Go-Live) está praticamente concluída: código pronto, faltam apenas ações manuais (DNS, painel Vercel, dados de produção no Supabase).
 
 ---
 
@@ -72,7 +72,7 @@ app/globals.css
 | 8 | Painel Administrativo (dashboard, gestão) | ✅ Concluída |
 | 8.6 | Melhorias Pré-Deploy (pagamento integral, Day Use completo, expedições) | ✅ Concluída |
 | 8.7 | Reserva Presencial (Walk-in) com Pagamento em Dinheiro | ✅ Concluída |
-| 9 | Deploy e Go-Live (Vercel, domínio, crons) | 🚧 Em andamento |
+| 9 | Deploy e Go-Live (Vercel, domínio, crons) | ✅ Código concluído (ações manuais pendentes) |
 
 ---
 
@@ -452,17 +452,31 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 
 ---
 
-## Próximas Fases a Implementar
+## Fase 9 — Deploy (Código Concluído)
 
-### Fase 9 — Deploy
-- `vercel.json` com cron jobs e região `gru1` (São Paulo)
-- Crons necessários:
-  - `/api/cron/processar-notificacoes` → a cada minuto
-  - `/api/cron/relatorios/diario` → 7h diário
-  - `/api/cron/limpeza/bloqueios` → a cada hora
-  - `/api/cron/limpeza/prereservas` → a cada 30 min
-- Configurar variáveis de ambiente no painel Vercel
-- Webhook do Mercado Pago apontando para URL de produção
+### Arquivos criados/modificados na Fase 9
+- `vercel.json` — região `gru1`, crons prereservas (30min) e bloqueios (1h)
+- `app/api/health/route.ts` — health check /api/health (200/503)
+- `app/robots.ts` — bloqueia /admin/, /api/, /login
+- `app/sitemap.ts` — 6 páginas públicas com pousadaxangrilademorros.com.br
+- `.env.production.example` — template de variáveis para o painel Vercel
+- `next.config.ts` — headers de segurança (X-Frame-Options, CSP, etc.)
+- `app/layout.tsx` — metadata SEO melhorada com URL de produção e OpenGraph
+- `app/(admin)/admin/dashboard/loading.tsx` — skeleton admin
+- `app/(admin)/admin/reservas/loading.tsx` — skeleton admin
+- `app/(admin)/admin/clientes/loading.tsx` — skeleton admin
+- `app/(admin)/admin/day-use/loading.tsx` — skeleton admin
+- `app/reservar/loading.tsx` — skeleton wizard
+- Email hardcoded removido dos routes PIX (usa `POUSADA_EMAIL` env var)
+- Cron prereservas: auth strict (removido bypass de dev)
+
+### Ações manuais pendentes antes do go-live
+- DNS: registro A e CNAME no registrador apontando para Vercel
+- Painel Vercel: configurar todas as variáveis de `.env.production.example`
+- Mercado Pago: trocar TEST- por APP_USR- e configurar webhook
+- Resend: verificar domínio pousadaxangrilademorros.com.br
+- Supabase: SQL migrations manuais (Frente 1 do PROMPT_FASE9) + dados reais
+- Imagens: substituir SVG placeholders por fotos reais
 
 ---
 

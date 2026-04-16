@@ -2,12 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function GET(request: NextRequest) {
-  // Verificar CRON_SECRET (pode ser chamado manualmente ou via Vercel Cron)
   const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-
-  // Em desenvolvimento, permitir chamada sem secret
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

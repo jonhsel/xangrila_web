@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto é dividido em 9 fases — as fases 1 a 8.7 estão concluídas. A fase 9 (Deploy e Go-Live) está praticamente concluída: código pronto, faltam apenas ações manuais (DNS, painel Vercel, dados de produção no Supabase).
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto está nas fases 1–10 concluídas. A fase 9 (Deploy e Go-Live) tem código pronto, faltam apenas ações manuais (DNS, painel Vercel, dados de produção no Supabase). A fase 10 (Autenticação Híbrida) está concluída: Google OAuth + Email/Senha + OTP, com OTP enviado apenas no primeiro acesso.
 
 ---
 
@@ -73,6 +73,7 @@ app/globals.css
 | 8.6 | Melhorias Pré-Deploy (pagamento integral, Day Use completo, expedições) | ✅ Concluída |
 | 8.7 | Reserva Presencial (Walk-in) com Pagamento em Dinheiro | ✅ Concluída |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | ✅ Código concluído (ações manuais pendentes) |
+| 10 | Autenticação Híbrida (Google OAuth + Email/Senha + OTP único) | ✅ Concluída |
 
 ---
 
@@ -95,8 +96,13 @@ xangrila_web/
 │   │   ├── layout.tsx                # Verifica auth, redireciona para /login
 │   │   └── minhas-reservas/
 │   │       └── page.tsx              # Listagem de reservas por status (server component)
+│   ├── auth/
+│   │   └── callback/
+│   │       └── route.ts              # Fase 10 — Handler OAuth callback (Google → verifica telefone)
+│   ├── completar-cadastro/
+│   │   └── page.tsx                  # Fase 10 — Tela de verificação de telefone pós-login social
 │   ├── login/
-│   │   └── page.tsx                  # Página de login OTP client-side
+│   │   └── page.tsx                  # Fase 10 — Login híbrido: Google + Email/Senha + OTP Telefone
 │   ├── reservar/
 │   │   ├── layout.tsx                # Header + Footer
 │   │   ├── page.tsx                  # Auth gate + wizard (client component)
@@ -107,9 +113,15 @@ xangrila_web/
 │   ├── api/
 │   │   ├── auth/
 │   │   │   ├── vincular-cliente/
-│   │   │   │   └── route.ts          # POST — busca/cria cliente após OTP (retorna email)
+│   │   │   │   └── route.ts          # POST — busca/cria cliente (suporta telefone E email — Fase 10)
 │   │   │   ├── atualizar-perfil/
 │   │   │   │   └── route.ts          # PATCH — salva nome e email do cliente (Fase 7.5)
+│   │   │   ├── completar-perfil-social/
+│   │   │   │   └── route.ts          # Fase 10 — POST — salva telefone verificado pós-OAuth
+│   │   │   ├── verificar-telefone/
+│   │   │   │   └── route.ts          # Fase 10 — POST — checa se email tem telefone verificado
+│   │   │   ├── verificar-telefone-disponivel/
+│   │   │   │   └── route.ts          # Fase 10 — POST — checa se telefone já está em uso
 │   │   │   └── logout/
 │   │   │       └── route.ts          # POST — encerra sessão (Fase 7)
 │   │   ├── disponibilidade/
@@ -137,6 +149,12 @@ xangrila_web/
 │       ├── photo-gallery.tsx         # Fase 7.5 — Grid de fotos com lightbox
 │       ├── acomodacoes-content.tsx   # Fase 7.5 — Conteúdo da página /acomodacoes
 │       ├── whatsapp-button.tsx       # Botão flutuante
+│       ├── auth/                     # Fase 10 — Componentes de autenticação híbrida
+│       │   ├── auth-tabs.tsx         # Fase 10 — Tabs: Google | Email | Telefone
+│       │   ├── login-social-buttons.tsx # Fase 10 — Botão Google OAuth (SVG inline)
+│       │   ├── login-email-form.tsx  # Fase 10 — Form email+senha (login + cadastro + recovery)
+│       │   ├── otp-login-form.tsx    # Fase 10 — Form OTP por telefone (extraído do auth-gate)
+│       │   └── telefone-verificacao.tsx # Fase 10 — Coleta e verifica telefone pós-OAuth
 │       └── reserva/
 │           ├── auth-gate.tsx         # Tela OTP (detecta perfil incompleto após auth)
 │           ├── client-profile-form.tsx # Fase 7.5 — Formulário nome + email pós-OTP
@@ -449,6 +467,8 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 7. **`app/(admin-public)` route group** — grupo de rotas sem proteção de auth, necessário para que `/admin/login` não entre em loop com o layout `(admin)`. Coexiste com `(admin)` porque as URLs finais não se sobrepõem.
 8. **`reservas_confirmadas.valor_restante` é coluna gerada** — calculada automaticamente pelo banco como `valor_total - valor_pago`. Nunca incluir no INSERT/UPDATE. Qualquer tentativa causa erro `428C9`. (Descoberto na Fase 8.7)
 9. **`reservas_confirmadas.metodo_pagamento` requer migration manual** — coluna não existia no schema original. Foi adicionada via `ALTER TABLE reservas_confirmadas ADD COLUMN IF NOT EXISTS metodo_pagamento TEXT` na Fase 8.7. Executar em produção antes do deploy.
+10. **Autenticação híbrida (Fase 10)** — o login do cliente público agora suporta 3 métodos: Google OAuth, Email+Senha e OTP por telefone. OTP só é enviado no **primeiro acesso** (cadastro). Segundos logins via Google/Email não consomem SMS. Novos campos em `clientes_xngrl`: `auth_provider` e `telefone_verificado` — migration executada em dev em 2026-04-21. `NEXT_PUBLIC_AUTH_CALLBACK_URL` deve ser configurado no painel Vercel com URL de produção. **Atenção:** no PostgreSQL, `ADD COLUMN ... CHECK(...)` na mesma instrução é inválido — usar `ADD CONSTRAINT ... CHECK(...)` como instrução separada.
+11. **Google OAuth em modo de testes** — o app Google está em "modo de testes". Para qualquer email conseguir fazer login, publicar o app em: Google Cloud Console → Google Auth Platform → Público → **Publicar app**. Enquanto em modo de testes, apenas emails adicionados em "Usuários de teste" funcionam.
 
 ---
 

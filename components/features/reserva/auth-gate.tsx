@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Smartphone, ArrowLeft, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createClient } from '@/lib/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { AuthTabs } from '@/components/features/auth/auth-tabs';
+import { OtpLoginForm } from '@/components/features/auth/otp-login-form';
+import { TelefoneVerificacao } from '@/components/features/auth/telefone-verificacao';
 
 // ============================================
 // TIPOS
@@ -25,249 +25,193 @@ interface AuthGateProps {
   onAuthenticated: (cliente: ClienteVinculado) => void;
 }
 
-type Etapa = 'telefone' | 'codigo';
-
 // ============================================
 // COMPONENTE
 // ============================================
 
 export function AuthGate({ onAuthenticated }: AuthGateProps) {
-  const [etapa, setEtapa] = useState<Etapa>('telefone');
-  const [telefone, setTelefone] = useState('');
-  const [codigo, setCodigo] = useState('');
-  const [carregando, setCarregando] = useState(false);
-  const [tempoReenvio, setTempoReenvio] = useState(0);
+  const [verificandoAuth, setVerificandoAuth] = useState(true);
+  const [precisaVerificarTelefone, setPrecisaVerificarTelefone] = useState(false);
+  const [userSocial, setUserSocial] = useState<{ email: string | null; nome: string } | null>(null);
 
   const supabase = createClient();
 
-  // Timer regressivo para reenvio
+  // Verificar se já está autenticado ao montar
   useEffect(() => {
-    if (tempoReenvio <= 0) return;
-    const timer = setTimeout(() => setTempoReenvio((t) => t - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [tempoReenvio]);
+    const verificar = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
 
-  // Formata telefone com máscara (XX) XXXXX-XXXX
-  function aplicarMascara(valor: string): string {
-    const numeros = valor.replace(/\D/g, '').slice(0, 11);
-    if (numeros.length <= 2) return numeros;
-    if (numeros.length <= 7) return `(${numeros.slice(0, 2)}) ${numeros.slice(2)}`;
-    return `(${numeros.slice(0, 2)}) ${numeros.slice(2, 7)}-${numeros.slice(7)}`;
-  }
+      if (user) {
+        // Usuário autenticado — verificar se tem telefone cadastrado
+        const provider = user.app_metadata?.provider;
+        const email = user.email;
 
-  function telefoneParaE164(tel: string): string {
-    const numeros = tel.replace(/\D/g, '');
-    return `+55${numeros}`;
-  }
-
-  function telefoneValido(tel: string): boolean {
-    return tel.replace(/\D/g, '').length >= 10;
-  }
-
-  async function enviarCodigo() {
-    if (!telefoneValido(telefone)) {
-      toast.error('Digite um telefone válido com DDD.');
-      return;
-    }
-
-    setCarregando(true);
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: telefoneParaE164(telefone),
-      });
-
-      if (error) {
-        toast.error(error.message || 'Erro ao enviar código. Tente novamente.');
-        return;
-      }
-
-      toast.success('Código enviado por SMS!');
-      setEtapa('codigo');
-      setTempoReenvio(60);
-    } catch {
-      toast.error('Erro ao enviar código. Tente novamente.');
-    } finally {
-      setCarregando(false);
-    }
-  }
-
-  async function verificarCodigo() {
-    if (codigo.length !== 6) {
-      toast.error('O código deve ter 6 dígitos.');
-      return;
-    }
-
-    setCarregando(true);
-    try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: telefoneParaE164(telefone),
-        token: codigo,
-        type: 'sms',
-      });
-
-      if (error) {
-        toast.error(error.message || 'Código inválido. Tente novamente.');
-        return;
-      }
-
-      toast.success('Telefone verificado com sucesso!');
-
-      // Vincular cliente e verificar se perfil precisa ser completado
-      try {
-        const resp = await fetch('/api/auth/vincular-cliente', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ telefone: telefoneParaE164(telefone) }),
-        });
-
-        if (resp.ok) {
-          const dados = await resp.json();
-          const precisaCompletarPerfil =
-            dados.novo === true ||
-            !dados.nome ||
-            dados.nome === telefoneParaE164(telefone) ||
-            dados.nome === telefone.replace(/\D/g, '');
-
-          onAuthenticated({
-            clienteId: dados.clienteId,
-            nome: dados.nome,
-            email: dados.email,
-            telefone: telefone,
-            precisaCompletarPerfil,
+        if (provider && provider !== 'phone' && email) {
+          // Login social ou email — verificar telefone
+          const resp = await fetch('/api/auth/verificar-telefone', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email }),
           });
+          const data = await resp.json();
+
+          if (!data.telefoneVerificado) {
+            // Precisa verificar telefone primeiro
+            setPrecisaVerificarTelefone(true);
+            setUserSocial({
+              email,
+              nome: user.user_metadata?.full_name || user.user_metadata?.name || '',
+            });
+            setVerificandoAuth(false);
+            return;
+          }
+
+          // Tem telefone — buscar dados do cliente e prosseguir
+          await vincularClientePorEmail(email, user);
           return;
         }
-      } catch {
-        // falha silenciosa — continua sem dados do cliente
+
+        if (user.phone) {
+          // Login por telefone — vincular e prosseguir
+          await vincularCliente(`+${user.phone}`.replace('++', '+'), user);
+          return;
+        }
       }
 
-      // Fallback sem dados de cliente
-      onAuthenticated({
-        clienteId: 0,
-        nome: '',
-        email: null,
-        telefone: telefone,
-        precisaCompletarPerfil: false,
+      setVerificandoAuth(false);
+    };
+
+    verificar();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function vincularCliente(telefone: string, user?: any) {
+    try {
+      const resp = await fetch('/api/auth/vincular-cliente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ telefone }),
       });
+
+      if (resp.ok) {
+        const dados = await resp.json();
+        const precisaCompletarPerfil =
+          dados.novo === true ||
+          !dados.nome ||
+          dados.nome === telefone ||
+          dados.nome === telefone.replace(/\D/g, '');
+
+        onAuthenticated({
+          clienteId: dados.clienteId,
+          nome: dados.nome,
+          email: dados.email,
+          telefone,
+          precisaCompletarPerfil,
+        });
+        return;
+      }
     } catch {
-      toast.error('Erro ao verificar código. Tente novamente.');
-    } finally {
-      setCarregando(false);
+      // falha silenciosa — fallback abaixo
     }
+
+    onAuthenticated({
+      clienteId: 0,
+      nome: '',
+      email: null,
+      telefone,
+      precisaCompletarPerfil: false,
+    });
   }
 
+  async function vincularClientePorEmail(email: string, user: any) {
+    try {
+      const resp = await fetch('/api/auth/vincular-cliente', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (resp.ok) {
+        const dados = await resp.json();
+        const precisaCompletarPerfil =
+          dados.novo === true ||
+          !dados.nome ||
+          dados.nome === email;
+
+        onAuthenticated({
+          clienteId: dados.clienteId,
+          nome: dados.nome || user.user_metadata?.full_name || email,
+          email: dados.email || email,
+          telefone: dados.telefone || '',
+          precisaCompletarPerfil,
+        });
+        return;
+      }
+    } catch {
+      // falha silenciosa
+    }
+
+    onAuthenticated({
+      clienteId: 0,
+      nome: user.user_metadata?.full_name || '',
+      email,
+      telefone: '',
+      precisaCompletarPerfil: false,
+    });
+  }
+
+  // Carregando verificação inicial
+  if (verificandoAuth) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Usuário autenticado via social/email mas sem telefone verificado
+  if (precisaVerificarTelefone && userSocial) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6">
+            <TelefoneVerificacao
+              userName={userSocial.nome}
+              redirectTo=""
+              // Após verificar, re-buscar auth ao invés de redirecionar
+            />
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Tela de login com as 3 opções
   return (
     <div className="flex min-h-[60vh] items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-            <Smartphone className="h-6 w-6 text-primary" />
-          </div>
-          <CardTitle className="text-xl">
-            {etapa === 'telefone' ? 'Verifique seu telefone' : 'Digite o código'}
-          </CardTitle>
+          <CardTitle className="text-xl">Acesse sua conta</CardTitle>
           <CardDescription>
-            {etapa === 'telefone'
-              ? 'Para sua segurança, enviaremos um código de verificação via SMS.'
-              : `Enviamos um código de 6 dígitos para ${aplicarMascara(telefone)}.`}
+            Escolha como deseja entrar para continuar com sua reserva
           </CardDescription>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          {etapa === 'telefone' ? (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="telefone">Telefone com DDD</Label>
-                <Input
-                  id="telefone"
-                  type="tel"
-                  placeholder="(98) 99999-9999"
-                  value={telefone}
-                  onChange={(e) => setTelefone(aplicarMascara(e.target.value))}
-                  onKeyDown={(e) => e.key === 'Enter' && enviarCodigo()}
-                  disabled={carregando}
-                  autoFocus
-                />
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={enviarCodigo}
-                disabled={carregando || !telefoneValido(telefone)}
-              >
-                {carregando ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  'Enviar código'
-                )}
-              </Button>
-            </>
-          ) : (
-            <>
-              <div className="space-y-2">
-                <Label htmlFor="codigo">Código de verificação</Label>
-                <Input
-                  id="codigo"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="000000"
-                  maxLength={6}
-                  value={codigo}
-                  onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  onKeyDown={(e) => e.key === 'Enter' && verificarCodigo()}
-                  disabled={carregando}
-                  className="text-center text-2xl tracking-widest"
-                  autoFocus
-                />
-              </div>
-
-              <Button
-                className="w-full"
-                onClick={verificarCodigo}
-                disabled={carregando || codigo.length !== 6}
-              >
-                {carregando ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Verificando...
-                  </>
-                ) : (
-                  'Verificar código'
-                )}
-              </Button>
-
-              <div className="text-center text-sm text-muted-foreground">
-                {tempoReenvio > 0 ? (
-                  <span>Reenviar em {tempoReenvio}s</span>
-                ) : (
-                  <button
-                    type="button"
-                    className="text-primary underline-offset-4 hover:underline"
-                    onClick={enviarCodigo}
-                    disabled={carregando}
-                  >
-                    Reenviar código
-                  </button>
-                )}
-              </div>
-
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={() => {
-                  setEtapa('telefone');
-                  setCodigo('');
+        <CardContent>
+          <AuthTabs
+            redirectTo=""
+            renderPhoneAuth={() => (
+              <OtpLoginForm
+                onSuccess={async () => {
+                  const { data: { user } } = await supabase.auth.getUser();
+                  if (user?.phone) {
+                    const telefone = `+${user.phone}`.replace('++', '+');
+                    await vincularCliente(telefone, user);
+                  }
                 }}
-                disabled={carregando}
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Trocar telefone
-              </Button>
-            </>
-          )}
+              />
+            )}
+          />
         </CardContent>
       </Card>
     </div>

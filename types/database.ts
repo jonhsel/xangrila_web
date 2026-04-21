@@ -134,6 +134,8 @@ export interface Database {
           ultima_reserva: string | null;
           observacoes: string | null;
           score_cliente: number;
+          auth_provider: 'phone' | 'google' | 'azure' | 'email' | null;
+          telefone_verificado: boolean;
         };
         Insert: {
           id_cliente?: never;
@@ -149,6 +151,8 @@ export interface Database {
           ultima_reserva?: string | null;
           observacoes?: string | null;
           score_cliente?: number;
+          auth_provider?: 'phone' | 'google' | 'azure' | 'email' | null;
+          telefone_verificado?: boolean;
         };
         Update: {
           id_cliente?: never;
@@ -164,6 +168,8 @@ export interface Database {
           ultima_reserva?: string | null;
           observacoes?: string | null;
           score_cliente?: number;
+          auth_provider?: 'phone' | 'google' | 'azure' | 'email' | null;
+          telefone_verificado?: boolean;
         };
       };
 

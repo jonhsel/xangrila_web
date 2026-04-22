@@ -1,81 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/';
-  const oauthError = searchParams.get('error');
 
-  // Supabase envia ?error=... quando o provider rejeita
-  if (oauthError) {
-    console.error('[auth/callback] OAuth provider error:', oauthError, searchParams.get('error_description'));
-    const errorUrl = new URL('/login', origin);
-    errorUrl.searchParams.set('error', 'oauth_error');
-    return NextResponse.redirect(errorUrl);
-  }
-
+  // Se não há code, redirecionar para login com erro
   if (!code) {
-    console.error('[auth/callback] No code in URL');
+    console.error('[Auth Callback] Nenhum code recebido na URL');
     const errorUrl = new URL('/login', origin);
     errorUrl.searchParams.set('error', 'oauth_error');
     return NextResponse.redirect(errorUrl);
   }
 
-  try {
-    const supabase = await createClient();
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+  // IMPORTANTE: Acumular os cookies que o Supabase seta durante
+  // exchangeCodeForSession para propagá-los no redirect response.
+  // Sem isso, a sessão é criada no Supabase mas os cookies NÃO
+  // são enviados ao browser, e a próxima página não encontra sessão.
+  const cookiesToSet: Array<{ name: string; value: string; options: any }> = [];
 
-    if (exchangeError) {
-      console.error('[auth/callback] exchangeCodeForSession error:', exchangeError.message);
-      const errorUrl = new URL('/login', origin);
-      errorUrl.searchParams.set('error', 'oauth_error');
-      return NextResponse.redirect(errorUrl);
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll();
+        },
+        setAll(cookies) {
+          cookies.forEach((cookie) => {
+            cookiesToSet.push(cookie);
+          });
+        },
+      },
     }
+  );
 
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
+  // Trocar o authorization code por uma sessão
+  const { error } = await supabase.auth.exchangeCodeForSession(code);
 
-    if (userError || !user) {
-      console.error('[auth/callback] getUser error:', userError?.message);
-      const errorUrl = new URL('/login', origin);
-      errorUrl.searchParams.set('error', 'oauth_error');
-      return NextResponse.redirect(errorUrl);
-    }
+  if (error) {
+    console.error('[Auth Callback] Erro exchangeCodeForSession:', error.message);
+    const errorUrl = new URL('/login', origin);
+    errorUrl.searchParams.set('error', 'oauth_error');
+    return NextResponse.redirect(errorUrl);
+  }
 
-    // Verificar se já tem telefone cadastrado (falha silenciosa = assume não verificado)
-    let telefoneVerificado = false;
-    const email = user.email;
+  // Sessão criada com sucesso — verificar se cliente tem telefone verificado
+  const { data: { user } } = await supabase.auth.getUser();
 
-    if (email) {
-      try {
-        const { createAdminClient } = await import('@/lib/supabase/admin');
-        const admin = createAdminClient();
+  let redirectPath = next === '/' ? '/minhas-reservas' : next;
+
+  if (user) {
+    try {
+      const { createAdminClient } = await import('@/lib/supabase/admin');
+      const admin = createAdminClient();
+      const email = user.email;
+
+      if (email) {
         const { data: cliente } = await (admin.from('clientes_xngrl') as any)
-          .select('telefonewhatsapp_cliente, telefone_verificado')
+          .select('id_cliente, telefonewhatsapp_cliente, telefone_verificado')
           .eq('email_cliente', email)
           .single();
 
-        if (cliente?.telefonewhatsapp_cliente && cliente?.telefone_verificado === true) {
-          telefoneVerificado = true;
+        // Se não tem telefone verificado → completar cadastro
+        if (!cliente?.telefonewhatsapp_cliente || !cliente?.telefone_verificado) {
+          redirectPath = `/completar-cadastro?next=${encodeURIComponent(next)}`;
         }
-      } catch (adminErr) {
-        console.error('[auth/callback] Admin query error (fail safe — redirect to completar-cadastro):', adminErr);
+      } else {
+        // Sem email (improvável com Google) → completar cadastro
+        redirectPath = `/completar-cadastro?next=${encodeURIComponent(next)}`;
       }
+    } catch (err) {
+      console.error('[Auth Callback] Erro ao verificar cliente:', err);
+      redirectPath = `/completar-cadastro?next=${encodeURIComponent(next)}`;
     }
-
-    const destino = next === '/' ? '/minhas-reservas' : next;
-
-    if (!telefoneVerificado) {
-      const redirectUrl = new URL('/completar-cadastro', origin);
-      redirectUrl.searchParams.set('next', destino);
-      return NextResponse.redirect(redirectUrl);
-    }
-
-    return NextResponse.redirect(new URL(destino, origin));
-  } catch (err) {
-    console.error('[auth/callback] Unexpected error:', err);
-    const errorUrl = new URL('/login', origin);
-    errorUrl.searchParams.set('error', 'oauth_error');
-    return NextResponse.redirect(errorUrl);
   }
+
+  // Criar response de redirect
+  const redirectUrl = new URL(redirectPath, origin);
+  const response = NextResponse.redirect(redirectUrl);
+
+  // ============================================================
+  // CRÍTICO: Propagar TODOS os cookies do exchangeCodeForSession
+  // no response. Sem isso, a sessão se perde no redirect.
+  // ============================================================
+  cookiesToSet.forEach(({ name, value, options }) => {
+    response.cookies.set(name, value, options);
+  });
+
+  console.log('[Auth Callback] Redirect para:', redirectUrl.toString(),
+    '| Cookies propagados:', cookiesToSet.length);
+
+  return response;
 }

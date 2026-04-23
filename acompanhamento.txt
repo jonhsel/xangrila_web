@@ -814,6 +814,78 @@ CREATE INDEX IF NOT EXISTS idx_clientes_auth_provider ON public.clientes_xngrl(a
 | 10.1.6 |   Google: app publicado ou emails de teste adicionados  | 2026-04-22   | 2026-04-22   | 1    | ✅     | 10.5                    |
 | 10.1.7 |   Teste: login Google funciona em produção              | 2026-04-22   | 2026-04-22   | 1    | ✅     | 10.1.1–10.1.6           |
 
-Total de fases concluídas: 10.1
-Período de desenvolvimento: 2026-03-25 a 2026-04-22 (28 dias corridos)
+| **10.2** | **Correção Duplicação Auth Google (sessão + registros)**   | 2026-04-23   | 2026-04-23   | 1    | ✅     | 10.1                    |
+| 10.2.1 |   Causa raiz: verifyOtp() substituía sessão Google ativa    | 2026-04-23   | 2026-04-23   | 1    | ✅     | —                       |
+| 10.2.2 |   verificar-telefone/route.ts dual-purpose (email OU OTP)  | 2026-04-23   | 2026-04-23   | 1    | ✅     | 10.4                    |
+| 10.2.3 |   completar-perfil-social: Twilio Verify + sessão ativa    | 2026-04-23   | 2026-04-23   | 1    | ✅     | 10.4                    |
+| 10.2.4 |   telefone-verificacao.tsx: APIs server-side (não supabase.auth) | 2026-04-23 | 2026-04-23 | 1 | ✅   | 10.2                    |
+| 10.2.5 |   npm run build — ✅ zero erros (53 rotas)                 | 2026-04-23   | 2026-04-23   | 1    | ✅     | todos                   |
+| 10.2.6 |   SQL limpeza manual (registros duplicados do banco)       | 2026-04-23   | 2026-04-23   | 1    | ✅     | —                       |
+
+---
+
+## ✅ CHECKLIST DA FASE 10.2 — Correção Duplicação Auth Google
+
+Início: 2026-04-23 | Conclusão: 2026-04-23 | Duração: 1 dia
+
+### Problema corrigido
+
+O `supabase.auth.signInWithOtp()` e `verifyOtp()` chamados client-side no `telefone-verificacao.tsx`
+criavam uma nova sessão de telefone, destruindo a sessão Google/Email ativa. Isso causava:
+- Nome do cliente = número de telefone (perda do `full_name` do Google)
+- Email do Google perdido (sessão de telefone não tem email)
+- 2 registros duplicados criados em `clientes_xngrl`
+
+### Arquivos modificados
+
+[x] `app/api/auth/verificar-telefone/route.ts` — agora dual-purpose:
+    - `{ email }` no body → verifica status de telefone (preserva comportamento de auth-gate e login-email-form)
+    - `{ telefone }` no body → envia OTP via Twilio Verify diretamente (requer usuário autenticado)
+[x] `app/api/auth/completar-perfil-social/route.ts` — substituído completamente:
+    - Agora recebe `{ telefone, codigo }` e verifica via Twilio Verify VerificationCheck
+    - Salva em clientes_xngrl usando email + nome da sessão Google/Email ativa
+    - Busca cliente existente por email OU telefone (evita duplicatas)
+[x] `components/features/auth/telefone-verificacao.tsx` — substituído completamente:
+    - Envia código: POST /api/auth/verificar-telefone com { telefone } (server-side Twilio)
+    - Verifica código: POST /api/auth/completar-perfil-social com { telefone, codigo }
+    - NÃO usa `supabase.auth.signInWithOtp()` nem `supabase.auth.verifyOtp()`
+    - Sessão Google/Email permanece intacta durante todo o fluxo
+
+### Build
+
+[x] npm run build — ✅ Compiled successfully, 53 rotas, zero erros TypeScript
+
+### Decisões técnicas
+
+- Route `verificar-telefone` mantém retrocompatibilidade: request com `{ email }` continua funcionando
+- `completar-perfil-social` usa Twilio Verify VerificationCheck (fetch direto, sem SDK)
+- Sessão do usuário é lida via `supabase.auth.getUser()` server-side, usando os dados do Google
+
+### Ações manuais concluídas — SQL de limpeza ✅ (2026-04-23)
+
+Executado no SQL Editor do Supabase para corrigir registros duplicados gerados pelo bug:
+
+```sql
+-- Ver estado atual
+SELECT id_cliente, nome_cliente, telefonewhatsapp_cliente, email_cliente, auth_provider, telefone_verificado
+FROM clientes_xngrl ORDER BY id_cliente;
+
+-- Deletar registro duplicado (id 8 — nome = +5598981519965, puro lixo)
+DELETE FROM clientes_xngrl WHERE id_cliente = 8;
+
+-- Atualizar registro id 7 com dados corretos do Google
+UPDATE clientes_xngrl
+SET nome_cliente = 'Jonh Selmo Nascimento',
+    email_cliente = 'jonhselmo.engcomp@gmail.com',
+    auth_provider = 'google',
+    telefone_verificado = true
+WHERE id_cliente = 7;
+
+-- Verificar resultado
+SELECT id_cliente, nome_cliente, telefonewhatsapp_cliente, email_cliente, auth_provider, telefone_verificado
+FROM clientes_xngrl ORDER BY id_cliente;
+```
+
+Total de fases concluídas: 10.2
+Período de desenvolvimento: 2026-03-25 a 2026-04-23 (29 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)

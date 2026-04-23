@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Loader2, Smartphone, CheckCircle2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 interface TelefoneVerificacaoProps {
   redirectTo?: string;
@@ -20,37 +19,24 @@ export function TelefoneVerificacao({ redirectTo = '/minhas-reservas', userName 
   const [etapa, setEtapa] = useState<Etapa>('telefone');
   const [telefone, setTelefone] = useState('');
   const [codigo, setCodigo] = useState('');
-  const [loadingEnvio, setLoadingEnvio] = useState(false);
-  const [loadingVerificacao, setLoadingVerificacao] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [timer, setTimer] = useState(0);
   const router = useRouter();
-  const supabase = createClient();
+
+  useEffect(() => {
+    if (timer <= 0) return;
+    const interval = setInterval(() => setTimer((t) => t - 1), 1000);
+    return () => clearInterval(interval);
+  }, [timer]);
 
   const formatarTelefone = (valor: string) => {
-    const nums = valor.replace(/\D/g, '');
+    const nums = valor.replace(/\D/g, '').slice(0, 11);
     if (nums.length <= 2) return `(${nums}`;
     if (nums.length <= 7) return `(${nums.slice(0, 2)}) ${nums.slice(2)}`;
-    if (nums.length <= 11) return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
-    return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7, 11)}`;
+    return `(${nums.slice(0, 2)}) ${nums.slice(2, 7)}-${nums.slice(7)}`;
   };
 
-  const paraE164 = (tel: string) => {
-    const nums = tel.replace(/\D/g, '');
-    return `+55${nums}`;
-  };
-
-  const iniciarTimer = () => {
-    setTimer(60);
-    const interval = setInterval(() => {
-      setTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
+  const telefoneE164 = () => `+55${telefone.replace(/\D/g, '')}`;
 
   const handleEnviarOTP = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -60,39 +46,30 @@ export function TelefoneVerificacao({ redirectTo = '/minhas-reservas', userName 
       return;
     }
 
-    setLoadingEnvio(true);
+    setLoading(true);
     try {
-      // Verificar se o telefone já está em uso por outro cliente
-      const checkResp = await fetch('/api/auth/verificar-telefone-disponivel', {
+      // Envia SMS via Twilio Verify server-side — NÃO usa supabase.auth.signInWithOtp()
+      // Isso preserva a sessão Google/Email ativa
+      const response = await fetch('/api/auth/verificar-telefone', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone: paraE164(telefone) }),
+        body: JSON.stringify({ telefone: telefoneE164() }),
       });
-      const checkData = await checkResp.json();
 
-      if (!checkResp.ok || checkData.emUso) {
-        toast.error('Este telefone já está cadastrado em outra conta.');
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || 'Erro ao enviar código');
         return;
       }
 
-      // Enviar OTP via Supabase (usa Twilio internamente)
-      const { error } = await supabase.auth.signInWithOtp({
-        phone: paraE164(telefone),
-      });
-
-      if (error && !error.message.includes('User not found')) {
-        toast.error('Erro ao enviar código. Tente novamente.');
-        return;
-      }
-
-      setEtapa('codigo');
-      iniciarTimer();
       toast.success(`Código enviado para ${formatarTelefone(telefone)}`);
-    } catch (err) {
+      setEtapa('codigo');
+      setTimer(60);
+    } catch {
       toast.error('Erro inesperado. Tente novamente.');
-      console.error(err);
     } finally {
-      setLoadingEnvio(false);
+      setLoading(false);
     }
   };
 
@@ -103,44 +80,34 @@ export function TelefoneVerificacao({ redirectTo = '/minhas-reservas', userName 
       return;
     }
 
-    setLoadingVerificacao(true);
+    setLoading(true);
     try {
-      const { error } = await supabase.auth.verifyOtp({
-        phone: paraE164(telefone),
-        token: codigo,
-        type: 'sms',
-      });
-
-      if (error) {
-        toast.error('Código inválido ou expirado. Tente novamente.');
-        return;
-      }
-
-      // Salvar telefone verificado no perfil do cliente
+      // Verifica código via Twilio e salva em clientes_xngrl com dados da sessão Google/Email ativa
+      // NÃO usa supabase.auth.verifyOtp() para não substituir a sessão
       const response = await fetch('/api/auth/completar-perfil-social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefone: paraE164(telefone) }),
+        body: JSON.stringify({ telefone: telefoneE164(), codigo }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const data = await response.json();
-        toast.error(data.error || 'Erro ao salvar telefone. Tente novamente.');
+        toast.error(data.error || 'Código inválido ou expirado. Tente novamente.');
         return;
       }
 
-      setEtapa('sucesso');
       toast.success('Telefone verificado com sucesso!');
+      setEtapa('sucesso');
 
       setTimeout(() => {
         router.push(redirectTo);
         router.refresh();
-      }, 2000);
-    } catch (err) {
+      }, 1500);
+    } catch {
       toast.error('Erro inesperado. Tente novamente.');
-      console.error(err);
     } finally {
-      setLoadingVerificacao(false);
+      setLoading(false);
     }
   };
 
@@ -192,9 +159,9 @@ export function TelefoneVerificacao({ redirectTo = '/minhas-reservas', userName 
           <Button
             type="submit"
             className="w-full"
-            disabled={loadingEnvio || telefone.replace(/\D/g, '').length < 10}
+            disabled={loading || telefone.replace(/\D/g, '').length < 10}
           >
-            {loadingEnvio && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Enviar código
           </Button>
         </form>
@@ -225,9 +192,9 @@ export function TelefoneVerificacao({ redirectTo = '/minhas-reservas', userName 
           <Button
             type="submit"
             className="w-full"
-            disabled={loadingVerificacao || codigo.length !== 6}
+            disabled={loading || codigo.length !== 6}
           >
-            {loadingVerificacao && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Verificar código
           </Button>
 
@@ -246,7 +213,7 @@ export function TelefoneVerificacao({ redirectTo = '/minhas-reservas', userName 
                 type="button"
                 onClick={() => handleEnviarOTP()}
                 className="text-primary hover:underline"
-                disabled={loadingEnvio}
+                disabled={loading}
               >
                 Reenviar código
               </button>

@@ -32,48 +32,90 @@ export async function POST(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // 3. Buscar clienteId pelo telefone do usuário autenticado
+    // 3. Buscar clienteId — tenta por telefone (OTP) ou por email (OAuth/email+senha)
     const telefone = user.phone ?? '';
-    const telefoneLimpo = telefone.replace(/\D/g, '');
-    const variantesBusca = [
-      telefone,
-      telefoneLimpo,
-      `+55${telefoneLimpo}`,
-      telefoneLimpo.startsWith('55') ? telefoneLimpo.slice(2) : telefoneLimpo,
-    ].filter(Boolean);
-
-    const { data: clientes } = await admin
-      .from('clientes_xngrl')
-      .select('id_cliente, nome_cliente')
-      .in('telefonewhatsapp_cliente', variantesBusca)
-      .limit(1) as { data: Pick<ClienteRow, 'id_cliente' | 'nome_cliente'>[] | null };
+    const emailUser = user.email ?? null;
 
     let clienteId: number;
 
-    if (clientes && clientes.length > 0) {
-      clienteId = clientes[0].id_cliente;
+    if (telefone) {
+      // Usuário autenticado via OTP: busca por telefone
+      const telefoneLimpo = telefone.replace(/\D/g, '');
+      const variantesBusca = [
+        telefone,
+        telefoneLimpo,
+        `+55${telefoneLimpo}`,
+        telefoneLimpo.startsWith('55') ? telefoneLimpo.slice(2) : telefoneLimpo,
+      ].filter(Boolean);
 
-      // Atualizar nome se fornecido
-      if (nomeCliente && nomeCliente.trim().length >= 3) {
+      const { data: clientes } = await admin
+        .from('clientes_xngrl')
+        .select('id_cliente, nome_cliente')
+        .in('telefonewhatsapp_cliente', variantesBusca)
+        .limit(1) as { data: Pick<ClienteRow, 'id_cliente' | 'nome_cliente'>[] | null };
+
+      if (clientes && clientes.length > 0) {
+        clienteId = clientes[0].id_cliente;
+        if (nomeCliente && nomeCliente.trim().length >= 3) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (admin.from('clientes_xngrl') as any)
+            .update({ nome_cliente: nomeCliente.trim() })
+            .eq('id_cliente', clienteId);
+        }
+      } else {
+        const { data: novoCliente, error: insertError } = await admin
+          .from('clientes_xngrl')
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .insert({ nome_cliente: nomeCliente?.trim() ?? telefone, telefonewhatsapp_cliente: telefone } as any)
+          .select('id_cliente')
+          .single() as { data: Pick<ClienteRow, 'id_cliente'> | null; error: unknown };
+
+        if (insertError || !novoCliente) {
+          console.error('Erro ao criar cliente (phone):', insertError);
+          return NextResponse.json({ erro: 'Erro ao cadastrar cliente.' }, { status: 500 });
+        }
+        clienteId = novoCliente.id_cliente;
+      }
+    } else if (emailUser) {
+      // Usuário autenticado via Google OAuth ou email+senha: busca por email
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: clientes } = await (admin.from('clientes_xngrl') as any)
+        .select('id_cliente, nome_cliente')
+        .eq('email_cliente', emailUser)
+        .limit(1) as { data: Pick<ClienteRow, 'id_cliente' | 'nome_cliente'>[] | null };
+
+      if (clientes && clientes.length > 0) {
+        clienteId = clientes[0].id_cliente;
+        if (nomeCliente && nomeCliente.trim().length >= 3) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await (admin.from('clientes_xngrl') as any)
+            .update({ nome_cliente: nomeCliente.trim() })
+            .eq('id_cliente', clienteId);
+        }
+      } else {
+        const nome = user.user_metadata?.full_name || user.user_metadata?.name || nomeCliente?.trim() || emailUser;
+        const provider = user.app_metadata?.provider || 'email';
+        const authProvider = provider === 'google' ? 'google' : 'email';
+
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await (admin.from('clientes_xngrl') as any)
-          .update({ nome_cliente: nomeCliente.trim() })
-          .eq('id_cliente', clienteId);
+        const { data: novoCliente, error: insertError } = await (admin.from('clientes_xngrl') as any)
+          .insert({
+            nome_cliente: typeof nome === 'string' ? nome : emailUser,
+            email_cliente: emailUser,
+            auth_provider: authProvider,
+            telefone_verificado: false,
+          })
+          .select('id_cliente')
+          .single() as { data: Pick<ClienteRow, 'id_cliente'> | null; error: unknown };
+
+        if (insertError || !novoCliente) {
+          console.error('Erro ao criar cliente (email):', insertError);
+          return NextResponse.json({ erro: 'Erro ao cadastrar cliente.' }, { status: 500 });
+        }
+        clienteId = novoCliente.id_cliente;
       }
     } else {
-      // Criar cliente se não existir
-      const { data: novoCliente, error: insertError } = await admin
-        .from('clientes_xngrl')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .insert({ nome_cliente: nomeCliente?.trim() ?? telefone, telefonewhatsapp_cliente: telefone } as any)
-        .select('id_cliente')
-        .single() as { data: Pick<ClienteRow, 'id_cliente'> | null; error: unknown };
-
-      if (insertError || !novoCliente) {
-        console.error('Erro ao criar cliente:', insertError);
-        return NextResponse.json({ erro: 'Erro ao cadastrar cliente.' }, { status: 500 });
-      }
-      clienteId = novoCliente.id_cliente;
+      return NextResponse.json({ erro: 'Usuário sem identificação válida.' }, { status: 400 });
     }
 
     // 4. Gerar ID da reserva

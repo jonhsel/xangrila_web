@@ -20,13 +20,26 @@ export default async function MinhasReservasPage() {
     redirect('/login');
   }
 
-  // Buscar cliente pelo telefone — usa admin client para bypass RLS
+  // Buscar cliente por telefone (OTP) ou email (OAuth/email+senha)
   const admin = createAdminClient();
 
-  const { data: cliente } = await (admin.from('clientes_xngrl') as any)
-    .select('id_cliente, nome_cliente')
-    .eq('telefonewhatsapp_cliente', user.phone)
-    .single();
+  let cliente: { id_cliente: number; nome_cliente: string } | null = null;
+
+  if (user.phone) {
+    const { data } = await (admin.from('clientes_xngrl') as any)
+      .select('id_cliente, nome_cliente')
+      .eq('telefonewhatsapp_cliente', user.phone)
+      .single();
+    cliente = data ?? null;
+  }
+
+  if (!cliente && user.email) {
+    const { data } = await (admin.from('clientes_xngrl') as any)
+      .select('id_cliente, nome_cliente')
+      .eq('email_cliente', user.email)
+      .single();
+    cliente = data ?? null;
+  }
 
   if (!cliente) {
     return (

@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. O projeto está nas fases 1–10 concluídas. A fase 9 (Deploy e Go-Live) tem código pronto, faltam apenas ações manuais (DNS, painel Vercel, dados de produção no Supabase). A fase 10 (Autenticação Híbrida) está concluída: Google OAuth + Email/Senha + OTP, com OTP enviado apenas no primeiro acesso.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 10.1 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida) e a fase 10.1 (Correções Auth) estão concluídas: Google OAuth + Email/Senha + OTP, com OTP enviado apenas no primeiro acesso, e callback OAuth com propagação correta de cookies.
 
 ---
 
@@ -74,6 +74,7 @@ app/globals.css
 | 8.7 | Reserva Presencial (Walk-in) com Pagamento em Dinheiro | ✅ Concluída |
 | 9 | Deploy e Go-Live (Vercel, domínio, crons) | ✅ Código concluído (ações manuais pendentes) |
 | 10 | Autenticação Híbrida (Google OAuth + Email/Senha + OTP único) | ✅ Concluída |
+| 10.1 | Correções Auth Híbrida (callback, domínio, cookies) | ✅ Concluída |
 
 ---
 
@@ -283,7 +284,7 @@ vercel.json                           # Fase 9
 | Tabela | Descrição |
 |---|---|
 | `acomodacoes` | Unidades disponíveis (Casa, Chalé) |
-| `clientes_xngrl` | Clientes cadastrados (+ `email_cliente` adicionado na Fase 7.5) |
+| `clientes_xngrl` | Clientes cadastrados (+ `email_cliente` Fase 7.5, + `auth_provider` e `telefone_verificado` Fase 10) |
 | `pre_reservas` | Pré-reservas aguardando pagamento |
 | `reservas_confirmadas` | Reservas com pagamento confirmado |
 | `disponibilidade_quartos` | Bloqueios por data/unidade |
@@ -394,6 +395,9 @@ TWILIO_PHONE_NUMBER=+5598...
 
 # Cron (necessário na Fase 9)
 CRON_SECRET=
+
+# Auth OAuth (Fase 10)
+NEXT_PUBLIC_AUTH_CALLBACK_URL=https://pousadaxangrilademorros.com.br/auth/callback
 ```
 
 ---
@@ -469,6 +473,7 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 9. **`reservas_confirmadas.metodo_pagamento` requer migration manual** — coluna não existia no schema original. Foi adicionada via `ALTER TABLE reservas_confirmadas ADD COLUMN IF NOT EXISTS metodo_pagamento TEXT` na Fase 8.7. Executar em produção antes do deploy.
 10. **Autenticação híbrida (Fase 10)** — o login do cliente público agora suporta 3 métodos: Google OAuth, Email+Senha e OTP por telefone. OTP só é enviado no **primeiro acesso** (cadastro). Segundos logins via Google/Email não consomem SMS. Novos campos em `clientes_xngrl`: `auth_provider` e `telefone_verificado` — migration executada em dev em 2026-04-21. `NEXT_PUBLIC_AUTH_CALLBACK_URL` deve ser configurado no painel Vercel com URL de produção. **Atenção:** no PostgreSQL, `ADD COLUMN ... CHECK(...)` na mesma instrução é inválido — usar `ADD CONSTRAINT ... CHECK(...)` como instrução separada.
 11. **Google OAuth em modo de testes** — o app Google está em "modo de testes". Para qualquer email conseguir fazer login, publicar o app em: Google Cloud Console → Google Auth Platform → Público → **Publicar app**. Enquanto em modo de testes, apenas emails adicionados em "Usuários de teste" funcionam.
+12. **Fase 10.1 — Callback OAuth com propagação de cookies + domínio correto** — `app/auth/callback/route.ts` usa `createServerClient` diretamente (não o wrapper `createClient()`) e acumula os cookies via `setAll`, propagando-os no `NextResponse.redirect()`. Sem isso, a sessão é criada no Supabase mas os cookies se perdem no redirect, causando loop de login. O domínio de produção correto é `pousadaxangrilademorros.com.br` (não `pousadaxangrila.com.br`). Configurações externas (Google Cloud Console origens JS + Supabase Site URL + Redirect URLs) devem apontar para `pousadaxangrilademorros.com.br`. A variável `NEXT_PUBLIC_AUTH_CALLBACK_URL` no Vercel deve ser `https://pousadaxangrilademorros.com.br/auth/callback`.
 
 ---
 

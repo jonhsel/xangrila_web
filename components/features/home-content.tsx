@@ -96,7 +96,7 @@ export function HomeContent() {
             <Button size="lg" asChild>
               <Link href={ROUTES.reservar}>Reservar Agora</Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10" asChild>
+            <Button size="lg" variant="outline" className="border-white text-white bg-transparent hover:bg-white/20" asChild>
               <Link href={ROUTES.dayUse}>Day Use</Link>
             </Button>
           </div>

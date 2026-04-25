@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { Menu, X } from 'lucide-react';
 import { POUSADA, ROUTES } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
+
 
 const navLinks = [
   { label: 'Início', href: ROUTES.home },
@@ -22,8 +24,15 @@ export function Header() {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href={ROUTES.home} className="text-xl font-bold text-primary">
-          {POUSADA.nome}
+        <Link href={ROUTES.home} className="flex items-center">
+          <Image
+            src="/images/logo-xangrila.png"
+            alt="Pousada Xangri-lá"
+            width={160}
+            height={50}
+            className="h-10 w-auto object-contain"
+            priority
+          />
         </Link>
 
         {/* Desktop nav */}

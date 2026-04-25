@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { MapPin, Home, Star, Wifi, Car, Coffee, Shield, Waves, TreePine, CheckCircle } from 'lucide-react';
+import { MapPin, Home, Star, Wifi, Car, Coffee, Shield, Waves, TreePine, CheckCircle, Leaf } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { POUSADA, ROUTES, TIPOS_ACOMODACAO } from '@/lib/constants';
@@ -27,8 +27,8 @@ const features = [
 ];
 
 const amenities = [
-  { icon: Waves, label: 'Piscina' },
-  { icon: TreePine, label: 'Jardim' },
+  { icon: Waves, label: 'Rio' },
+  { icon: Leaf, label: 'Natureza' },
   { icon: Wifi, label: 'Wi-Fi' },
   { icon: Car, label: 'Estacionamento' },
   { icon: Coffee, label: 'Café da Manhã' },

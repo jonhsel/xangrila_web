@@ -9,7 +9,7 @@ export const TIPOS_ACOMODACAO = {
     capacidadeMinima: 1,
     capacidadeMaxima: 6,
     descricaoCurta: 'Espaçosas e completas. Ideais para famílias.',
-    features: ['Até 6 pessoas', 'Cozinha completa', 'Área externa', 'Churrasqueira'],
+    features: ['Até 6 pessoas', 'Cozinha completa', 'Área externa', 'Aconchegante'],
     unidades: ['Amarela', 'Vermelha'],
     totalUnidades: 2,
     gradient: 'from-green-400 to-green-600',

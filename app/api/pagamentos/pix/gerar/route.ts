@@ -16,6 +16,76 @@ const bodySchema = z.object({
 });
 
 // ============================================
+// HELPER — Busca cliente de forma híbrida
+// Suporta: OTP (telefone), Google OAuth, Email/Senha
+// ============================================
+
+type ClienteBasico = Pick<ClienteRow, 'id_cliente' | 'nome_cliente'>;
+
+async function buscarCliente(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  userPhone: string | undefined,
+  userEmail: string | undefined
+): Promise<ClienteBasico | null> {
+
+  // ── TENTATIVA 1: Busca por telefone (login OTP) ──────────────────────────
+  if (userPhone && userPhone.trim() !== '') {
+    const telefoneLimpo = userPhone.replace(/\D/g, '');
+
+    // Gerar variantes do número para cobrir diferentes formatos no banco
+    const variantesBusca = [
+      userPhone,                                              // ex: +5598981519965
+      telefoneLimpo,                                          // ex: 5598981519965
+      `+55${telefoneLimpo}`,                                  // ex: +555598981519965 (edge case)
+      telefoneLimpo.startsWith('55')
+        ? telefoneLimpo.slice(2)
+        : telefoneLimpo,                                      // ex: 98981519965 (sem DDI)
+    ].filter(Boolean);
+
+    // Remover duplicatas
+    const variantesUnicas = [...new Set(variantesBusca)];
+
+    console.log('[PIX] Buscando cliente por telefone:', variantesUnicas);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: clientesPorTelefone } = await (admin.from('clientes_xngrl') as any)
+      .select('id_cliente, nome_cliente')
+      .in('telefonewhatsapp_cliente', variantesUnicas)
+      .limit(1) as { data: ClienteBasico[] | null };
+
+    if (clientesPorTelefone && clientesPorTelefone.length > 0) {
+      console.log('[PIX] ✅ Cliente encontrado por telefone:', clientesPorTelefone[0].id_cliente);
+      return clientesPorTelefone[0];
+    }
+
+    console.log('[PIX] ⚠️ Cliente não encontrado por telefone, tentando por email...');
+  }
+
+  // ── TENTATIVA 2: Busca por email (login Google ou Email/Senha) ────────────
+  if (userEmail && userEmail.trim() !== '') {
+    console.log('[PIX] Buscando cliente por email:', userEmail);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: clientesPorEmail } = await (admin.from('clientes_xngrl') as any)
+      .select('id_cliente, nome_cliente')
+      .eq('email_cliente', userEmail)
+      .limit(1) as { data: ClienteBasico[] | null };
+
+    if (clientesPorEmail && clientesPorEmail.length > 0) {
+      console.log('[PIX] ✅ Cliente encontrado por email:', clientesPorEmail[0].id_cliente);
+      return clientesPorEmail[0];
+    }
+
+    console.log('[PIX] ⚠️ Cliente não encontrado por email.');
+  }
+
+  // ── Não encontrou por nenhum método ──────────────────────────────────────
+  console.error('[PIX] ❌ Cliente não encontrado. phone:', userPhone, '| email:', userEmail);
+  return null;
+}
+
+// ============================================
 // POST — Gerar PIX via Mercado Pago
 // ============================================
 
@@ -48,7 +118,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { reservaId, email } = parsed.data;
+    const { reservaId, email: emailOverride } = parsed.data;
 
     // 3. Verificar se Mercado Pago está configurado
     if (!isMercadoPagoConfigured()) {
@@ -61,27 +131,24 @@ export async function POST(request: NextRequest) {
 
     const admin = createAdminClient();
 
-    // 4. Buscar clienteId do usuário autenticado
-    const telefone = user.phone ?? '';
-    const telefoneLimpo = telefone.replace(/\D/g, '');
-    const variantesBusca = [
-      telefone,
-      telefoneLimpo,
-      `+55${telefoneLimpo}`,
-      telefoneLimpo.startsWith('55') ? telefoneLimpo.slice(2) : telefoneLimpo,
-    ].filter(Boolean);
+    // 4. Buscar clienteId — LÓGICA HÍBRIDA (telefone + email)
+    //    user.phone  → preenchido no login por OTP
+    //    user.email  → preenchido no login por Google OAuth ou Email/Senha
+    const emailParaBusca = emailOverride ?? user.email ?? undefined;
 
-    const { data: clientes } = (await admin
-      .from('clientes_xngrl')
-      .select('id_cliente, nome_cliente')
-      .in('telefonewhatsapp_cliente', variantesBusca)
-      .limit(1)) as { data: Pick<ClienteRow, 'id_cliente' | 'nome_cliente'>[] | null };
+    const cliente = await buscarCliente(admin, user.phone ?? undefined, emailParaBusca);
 
-    if (!clientes || clientes.length === 0) {
-      return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 });
+    if (!cliente) {
+      return NextResponse.json(
+        {
+          error: 'Cliente não encontrado. Verifique se seu cadastro está completo.',
+          debug: process.env.NODE_ENV === 'development'
+            ? { phone: user.phone, email: emailParaBusca }
+            : undefined,
+        },
+        { status: 404 }
+      );
     }
-
-    const cliente = clientes[0] as Pick<ClienteRow, 'id_cliente' | 'nome_cliente'>;
 
     // 5. Buscar pré-reserva e validar pertencimento
     type PreReservaSelect = Pick<
@@ -89,11 +156,11 @@ export async function POST(request: NextRequest) {
       'reserva_id' | 'status' | 'valor_sinal' | 'valor_total' | 'expira_em' | 'cliente_id' | 'chave_pix'
     >;
 
-    const { data: preReserva } = (await admin
-      .from('pre_reservas')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: preReserva } = await (admin.from('pre_reservas') as any)
       .select('reserva_id, status, valor_sinal, valor_total, expira_em, cliente_id, chave_pix')
       .eq('reserva_id', reservaId)
-      .single()) as { data: PreReservaSelect | null; error: unknown };
+      .single() as { data: PreReservaSelect | null; error: unknown };
 
     if (!preReserva) {
       return NextResponse.json({ error: 'Reserva não encontrada.' }, { status: 404 });
@@ -104,7 +171,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Acesso negado.' }, { status: 403 });
     }
 
-    // 7. Validar status
+    // 7. Validar status da pré-reserva
     if (preReserva.status !== 'aguardando_pagamento') {
       if (preReserva.status === 'pago') {
         return NextResponse.json({ error: 'Esta reserva já foi paga.' }, { status: 400 });
@@ -118,14 +185,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Status de reserva inválido para pagamento.' }, { status: 400 });
     }
 
-    // 8. Se já tem chave_pix gerada anteriormente, retornar sem criar novo pagamento
-    // (evita duplicar pagamentos no Mercado Pago)
+    // 8. Se já tem chave_pix gerada, retornar sem criar novo pagamento
     if (preReserva.chave_pix) {
-      const { data: preReservaCompleta } = (await admin
-        .from('pre_reservas')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: preReservaCompleta } = await (admin.from('pre_reservas') as any)
         .select('chave_pix, pix_payload, qr_code_url, valor_sinal, expira_em')
         .eq('reserva_id', reservaId)
-        .single()) as {
+        .single() as {
         data: {
           chave_pix: string;
           pix_payload: string | null;
@@ -137,82 +203,99 @@ export async function POST(request: NextRequest) {
       };
 
       if (preReservaCompleta?.chave_pix) {
-        return NextResponse.json({
+        const pixResp: PixResponse = {
           success: true,
           qr_code: preReservaCompleta.chave_pix,
           qr_code_base64: preReservaCompleta.pix_payload ?? undefined,
           ticket_url: preReservaCompleta.qr_code_url ?? undefined,
           valor: Number(preReservaCompleta.valor_sinal ?? 0),
           expira_em: preReservaCompleta.expira_em ?? undefined,
-        } satisfies PixResponse);
+        };
+        return NextResponse.json(pixResp);
       }
     }
 
-    // 9. Montar email do pagador
-    // clientes_xngrl não armazena email — usar email fornecido ou fallback da pousada
-    const EMAIL_POUSADA = process.env.POUSADA_EMAIL || 'contato@pousadaxangrilademorros.com.br';
-    const emailPagador = email ?? EMAIL_POUSADA;
-
-    const nomeCliente = cliente.nome_cliente ?? 'Hóspede';
+    // 9. Determinar email para o Mercado Pago
+    //    MP exige um email válido — usar o do usuário ou um temporário
+    const emailMP =
+      emailParaBusca ??
+      `cliente-${cliente.id_cliente}@pousadaxangrila.temp.br`;
 
     // 10. Criar pagamento PIX no Mercado Pago
-    // O external_reference liga o pagamento à reserva — CRUCIAL para o webhook
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000';
+    const valorSinal = Number(preReserva.valor_sinal ?? 0);
+    if (valorSinal <= 0) {
+      return NextResponse.json({ error: 'Valor de pagamento inválido.' }, { status: 400 });
+    }
 
-    const payment = await paymentClient.create({
+    const expiraEm = preReserva.expira_em ? new Date(preReserva.expira_em) : null;
+    const agora = new Date();
+    const minutosRestantes = expiraEm
+      ? Math.floor((expiraEm.getTime() - agora.getTime()) / 60000)
+      : 30;
+    const minutosValidos = Math.max(5, Math.min(minutosRestantes, 30));
+
+    console.log('[PIX] Criando pagamento MP para reserva:', reservaId, '| Valor:', valorSinal);
+
+    const pagamento = await paymentClient.create({
       body: {
-        transaction_amount: Number(preReserva.valor_sinal),
-        description: `Reserva Pousada Xangrilá ${reservaId}`,
+        transaction_amount: valorSinal,
+        description: `Reserva ${reservaId} - Pousada Xangrila`,
         payment_method_id: 'pix',
+        date_of_expiration: new Date(
+          agora.getTime() + minutosValidos * 60 * 1000
+        ).toISOString(),
         external_reference: reservaId,
         payer: {
-          email: emailPagador,
-          first_name: nomeCliente,
-        },
-        notification_url: `${appUrl}/api/webhooks/mercadopago`,
-        metadata: {
-          reserva_id: reservaId,
-          tipo: 'reserva_integral',
-          cliente_id: preReserva.cliente_id,
+          email: emailMP,
+          first_name: cliente.nome_cliente ?? 'Cliente',
         },
       },
     });
 
-    // 11. Extrair dados do QR Code
-    const qrCode = payment.point_of_interaction?.transaction_data?.qr_code ?? null;
-    const qrCodeBase64 = payment.point_of_interaction?.transaction_data?.qr_code_base64 ?? null;
-    const ticketUrl = payment.point_of_interaction?.transaction_data?.ticket_url ?? null;
+    console.log('[PIX] Resposta MP:', {
+      id: pagamento.id,
+      status: pagamento.status,
+    });
 
-    if (!qrCode) {
-      console.error('[PIX] Mercado Pago não retornou qr_code:', JSON.stringify(payment));
+    const pixData = pagamento.point_of_interaction?.transaction_data;
+
+    if (!pixData?.qr_code) {
+      console.error('[PIX] MP não retornou QR Code:', pagamento);
       return NextResponse.json(
         { error: 'Erro ao gerar PIX. Tente novamente.' },
         { status: 500 }
       );
     }
 
-    // 12. Salvar dados PIX na pre_reserva
-    // cast necessário: Supabase JS v2.100+ infere never em .update() — ver CLAUDE.md
+    // 11. Salvar dados do PIX na pré-reserva
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     await (admin.from('pre_reservas') as any)
-      .update({ chave_pix: qrCode, pix_payload: qrCodeBase64, qr_code_url: ticketUrl })
+      .update({
+        chave_pix: pixData.qr_code,
+        pix_payload: pixData.qr_code_base64 ?? null,
+        qr_code_url: pixData.ticket_url ?? null,
+      })
       .eq('reserva_id', reservaId);
 
-    console.log(`[PIX] Pagamento criado para reserva ${reservaId} — MP ID: ${payment.id}`);
+    console.log('[PIX] ✅ PIX gerado e salvo para reserva:', reservaId);
 
-    return NextResponse.json({
+    // 12. Retornar dados para o frontend
+    const resposta: PixResponse = {
       success: true,
-      payment_id: payment.id ?? undefined,
-      qr_code: qrCode,
-      qr_code_base64: qrCodeBase64 ?? undefined,
-      ticket_url: ticketUrl ?? undefined,
-      valor: Number(preReserva.valor_sinal),
+      payment_id: pagamento.id ?? undefined,
+      qr_code: pixData.qr_code,
+      qr_code_base64: pixData.qr_code_base64 ?? undefined,
+      ticket_url: pixData.ticket_url ?? undefined,
+      valor: valorSinal,
       expira_em: preReserva.expira_em ?? undefined,
-    } satisfies PixResponse);
-  } catch (err) {
-    console.error('[PIX] Erro em /api/pagamentos/pix/gerar:', err);
+    };
+
+    return NextResponse.json(resposta);
+
+  } catch (error) {
+    console.error('[PIX] Erro inesperado:', error);
     return NextResponse.json(
-      { success: false, error: 'Erro interno ao gerar PIX.' },
+      { error: 'Erro interno do servidor.' },
       { status: 500 }
     );
   }

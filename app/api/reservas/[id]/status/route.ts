@@ -3,6 +3,67 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { ClienteRow, ReservaRow, PreReservaRow } from '@/types';
 
+// ============================================
+// HELPER — Busca cliente de forma híbrida
+// Suporta: OTP (telefone), Google OAuth (email), Email/Senha (email)
+// Mesma lógica usada em /api/pagamentos/pix/gerar/route.ts
+// ============================================
+
+type ClienteBasico = Pick<ClienteRow, 'id_cliente'>;
+
+async function buscarClienteHibrido(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  admin: any,
+  userPhone: string | undefined,
+  userEmail: string | undefined
+): Promise<ClienteBasico | null> {
+
+  // ── TENTATIVA 1: Busca por telefone (login OTP) ──────────────────────────
+  if (userPhone && userPhone.trim() !== '') {
+    const telefoneLimpo = userPhone.replace(/\D/g, '');
+
+    const variantesBusca = [
+      userPhone,
+      telefoneLimpo,
+      `+55${telefoneLimpo}`,
+      telefoneLimpo.startsWith('55')
+        ? telefoneLimpo.slice(2)
+        : telefoneLimpo,
+    ].filter(Boolean);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: clientes } = await (admin
+      .from('clientes_xngrl') as any)
+      .select('id_cliente')
+      .in('telefonewhatsapp_cliente', variantesBusca)
+      .limit(1) as { data: ClienteBasico[] | null; error: unknown };
+
+    if (clientes && clientes.length > 0) {
+      return clientes[0];
+    }
+  }
+
+  // ── TENTATIVA 2: Busca por email (login Google OAuth ou Email/Senha) ─────
+  if (userEmail && userEmail.trim() !== '') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: clientes } = await (admin
+      .from('clientes_xngrl') as any)
+      .select('id_cliente')
+      .eq('email_cliente', userEmail)
+      .limit(1) as { data: ClienteBasico[] | null; error: unknown };
+
+    if (clientes && clientes.length > 0) {
+      return clientes[0];
+    }
+  }
+
+  return null;
+}
+
+// ============================================
+// GET /api/reservas/[id]/status
+// ============================================
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -24,34 +85,32 @@ export async function GET(
 
     const admin = createAdminClient();
 
-    // 2. Buscar clienteId do usuário autenticado
-    const telefone = user.phone ?? '';
-    const telefoneLimpo = telefone.replace(/\D/g, '');
-    const variantesBusca = [
-      telefone,
-      telefoneLimpo,
-      `+55${telefoneLimpo}`,
-      telefoneLimpo.startsWith('55') ? telefoneLimpo.slice(2) : telefoneLimpo,
-    ].filter(Boolean);
+    // 2. Buscar clienteId — LÓGICA HÍBRIDA (telefone + email)
+    //    user.phone  → preenchido no login por OTP
+    //    user.email  → preenchido no login por Google OAuth ou Email/Senha
+    const cliente = await buscarClienteHibrido(
+      admin,
+      user.phone ?? undefined,
+      user.email ?? undefined
+    );
 
-    const { data: clientes } = await admin
-      .from('clientes_xngrl')
-      .select('id_cliente')
-      .in('telefonewhatsapp_cliente', variantesBusca)
-      .limit(1) as { data: Pick<ClienteRow, 'id_cliente'>[] | null };
-
-    if (!clientes || clientes.length === 0) {
+    if (!cliente) {
+      console.error('[Status] Cliente não encontrado:', {
+        phone: user.phone,
+        email: user.email,
+      });
       return NextResponse.json({ erro: 'Cliente não encontrado.' }, { status: 404 });
     }
 
-    const clienteId = clientes[0].id_cliente;
+    const clienteId = cliente.id_cliente;
 
     type ReservaSelect = Pick<ReservaRow, 'reserva_id' | 'status' | 'data_checkin' | 'data_checkout' | 'pessoas' | 'tipo_quarto' | 'valor_total' | 'valor_pago' | 'valor_restante' | 'created_at'>;
     type PreReservaSelect = Pick<PreReservaRow, 'reserva_id' | 'status' | 'expira_em' | 'valor_total' | 'valor_sinal' | 'data_checkin' | 'data_checkout' | 'pessoas' | 'tipo_quarto' | 'created_at'>;
 
     // 3. Buscar em reservas_confirmadas
-    const { data: reserva } = await admin
-      .from('reservas_confirmadas')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: reserva } = await (admin
+      .from('reservas_confirmadas') as any)
       .select(
         'reserva_id, status, data_checkin, data_checkout, pessoas, tipo_quarto, valor_total, valor_pago, valor_restante, created_at'
       )
@@ -60,8 +119,9 @@ export async function GET(
       .single() as { data: ReservaSelect | null; error: unknown };
 
     // 4. Buscar em pre_reservas
-    const { data: preReserva } = await admin
-      .from('pre_reservas')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: preReserva } = await (admin
+      .from('pre_reservas') as any)
       .select(
         'reserva_id, status, expira_em, valor_total, valor_sinal, data_checkin, data_checkout, pessoas, tipo_quarto, created_at'
       )
@@ -74,6 +134,9 @@ export async function GET(
     }
 
     // 5. Montar resposta unificada
+    //    IMPORTANTE para o polling do pix-payment.tsx:
+    //    - Se reserva existe com status='confirmada' → pagamento confirmado
+    //    - Se só pre_reserva existe com status='aguardando_pagamento' → ainda esperando
     const dados = reserva
       ? {
           reservaId: reserva.reserva_id,

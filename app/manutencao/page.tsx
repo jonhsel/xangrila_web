@@ -185,7 +185,7 @@ export default function ManutencaoPage() {
           <div className="card-contato">
             <p>Para reservas ou informações</p>
             <a
-              href="https://wa.me/5598981672949"
+              href="https://wa.me/5598991178982"
               className="contato-link"
               target="_blank"
               rel="noopener noreferrer"

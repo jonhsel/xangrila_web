@@ -889,3 +889,46 @@ FROM clientes_xngrl ORDER BY id_cliente;
 Total de fases concluídas: 10.2
 Período de desenvolvimento: 2026-03-25 a 2026-04-23 (29 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)
+
+---
+
+## ✅ CHECKLIST DA FASE 11 — Modo Manutenção
+
+Início: 2026-05-04 | Conclusão: 2026-05-04 | Duração: 1 dia
+
+### Objetivo
+Permitir "desligar" o site publicamente sem excluir o projeto na Vercel.
+Ativado via variável de ambiente `MAINTENANCE_MODE=true`, sem alteração de código.
+Exibe página estilizada com nome da pousada, mensagem e contato WhatsApp.
+
+### Arquivos modificados
+[x] middleware.ts — bloco de manutenção adicionado no início da função middleware
+
+### Arquivos criados
+[x] app/manutencao/page.tsx — página standalone (sem layout raiz), estilo dark/dourado
+
+### Como ATIVAR o modo manutenção
+1. Acessar painel Vercel → Settings → Environment Variables
+2. Adicionar: MAINTENANCE_MODE = true (apenas Production)
+3. Ir em Deployments → "..." no último deploy → Redeploy
+4. Site exibirá a página de manutenção para todos os visitantes
+
+### Como DESATIVAR o modo manutenção
+1. Acessar painel Vercel → Settings → Environment Variables
+2. Remover ou alterar MAINTENANCE_MODE para false
+3. Redeploy
+
+### Build
+[x] npm run build — verificar zero erros TypeScript após modificações
+
+---
+
+| **11** | **Modo Manutenção (MAINTENANCE_MODE env var)**         | 2026-05-04   | 2026-05-04   | 1    | ✅     | 9                       |
+| 11.1   |   middleware.ts: bloco manutenção no início da função  | 2026-05-04   | 2026-05-04   | 1    | ✅     | —                       |
+| 11.2   |   app/manutencao/page.tsx: página standalone           | 2026-05-04   | 2026-05-04   | 1    | ✅     | 11.1                    |
+| 11.3   |   CLAUDE.md e acompanhamento.txt atualizados           | 2026-05-04   | 2026-05-04   | 1    | ✅     | —                       |
+| 11.4   |   npm run build — zero erros                          | 2026-05-04   | 2026-05-04   | 1    | ✅     | 11.1, 11.2              |
+
+Total de fases concluídas: 11
+Período de desenvolvimento: 2026-03-25 a 2026-05-04 (40 dias corridos)
+Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)

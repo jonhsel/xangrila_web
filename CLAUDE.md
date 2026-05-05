@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 10.2 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 11 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone.
 
 ---
 
@@ -41,7 +41,7 @@ Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), d
 ## Arquivos Protegidos — NÃO Alterar
 
 ```
-middleware.ts
+middleware.ts  ← ATENÇÃO: pode ser modificado apenas para adicionar/remover o bloco MODO MANUTENÇÃO no início da função middleware
 lib/supabase/client.ts
 lib/supabase/server.ts
 lib/supabase/admin.ts
@@ -76,6 +76,7 @@ app/globals.css
 | 10 | Autenticação Híbrida (Google OAuth + Email/Senha + OTP único) | ✅ Concluída |
 | 10.1 | Correções Auth Híbrida (callback, domínio, cookies) | ✅ Concluída |
 | 10.2 | Correção Duplicação Auth Google (sessão + registros duplicados) | ✅ Concluída |
+| 11 | Modo Manutenção (on/off via env var MAINTENANCE_MODE) | ✅ Concluída |
 
 ---
 
@@ -399,6 +400,9 @@ CRON_SECRET=
 
 # Auth OAuth (Fase 10)
 NEXT_PUBLIC_AUTH_CALLBACK_URL=https://pousadaxangrilademorros.com.br/auth/callback
+
+# Modo Manutenção (Fase 11)
+MAINTENANCE_MODE=false
 ```
 
 ---
@@ -476,6 +480,7 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 11. **Google OAuth em modo de testes** — o app Google está em "modo de testes". Para qualquer email conseguir fazer login, publicar o app em: Google Cloud Console → Google Auth Platform → Público → **Publicar app**. Enquanto em modo de testes, apenas emails adicionados em "Usuários de teste" funcionam.
 12. **Fase 10.1 — Callback OAuth com propagação de cookies + domínio correto** — `app/auth/callback/route.ts` usa `createServerClient` diretamente (não o wrapper `createClient()`) e acumula os cookies via `setAll`, propagando-os no `NextResponse.redirect()`. Sem isso, a sessão é criada no Supabase mas os cookies se perdem no redirect, causando loop de login. O domínio de produção correto é `pousadaxangrilademorros.com.br` (não `pousadaxangrila.com.br`). Configurações externas (Google Cloud Console origens JS + Supabase Site URL + Redirect URLs) devem apontar para `pousadaxangrilademorros.com.br`. A variável `NEXT_PUBLIC_AUTH_CALLBACK_URL` no Vercel deve ser `https://pousadaxangrilademorros.com.br/auth/callback`.
 13. **Fase 10.2 — Verificação de telefone pós-OAuth sem substituir sessão** — O componente `telefone-verificacao.tsx` **NÃO DEVE** usar `supabase.auth.signInWithOtp()` / `supabase.auth.verifyOtp()` para verificar telefone pós-login social. Esses métodos criam uma nova sessão de telefone, destruindo a sessão Google ativa e causando: nome do cliente = número de telefone, perda do email, registros duplicados em `clientes_xngrl`. Solução: `app/api/auth/verificar-telefone/route.ts` envia SMS via Twilio Verify diretamente (quando `body.telefone` presente); `app/api/auth/completar-perfil-social/route.ts` verifica o código via Twilio e salva com email+nome da sessão ativa. A route `verificar-telefone` é dual-purpose: `{ email }` → check status (para auth-gate/login-email-form), `{ telefone }` → enviar OTP (para telefone-verificacao.tsx). SQL de limpeza manual necessário para registros duplicados criados antes da correção.
+14. **Modo Manutenção (Fase 11)** — `middleware.ts` contém bloco de manutenção no início da função `middleware`. Quando `MAINTENANCE_MODE=true` (env var Vercel), todas as rotas são reescritas para `/manutencao`. A página `app/manutencao/page.tsx` é standalone (sem layout raiz). Para ativar: definir `MAINTENANCE_MODE=true` no painel Vercel e fazer redeploy. Para desativar: remover a variável ou setar `false` e redeploy.
 
 ---
 

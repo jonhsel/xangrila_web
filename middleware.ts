@@ -13,6 +13,36 @@ import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  // ================================================================
+  // MODO MANUTENÇÃO
+  // Ativar: definir MAINTENANCE_MODE=true nas env vars da Vercel
+  // Desativar: remover a variável ou definir MAINTENANCE_MODE=false
+  // ================================================================
+  const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
+
+  const ROTAS_PERMITIDAS_MANUTENCAO = [
+    '/manutencao',   // a própria página de manutenção
+    '/_next',        // assets estáticos do Next.js
+    '/favicon.ico',  // favicon
+    '/images',       // imagens públicas
+    '/fonts',        // fontes
+  ];
+
+  if (MAINTENANCE_MODE) {
+    const { pathname } = request.nextUrl;
+    const isPermitida = ROTAS_PERMITIDAS_MANUTENCAO.some((rota) =>
+      pathname.startsWith(rota)
+    );
+    if (!isPermitida) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/manutencao';
+      return NextResponse.rewrite(url);
+    }
+  }
+  // ================================================================
+  // FIM MODO MANUTENÇÃO
+  // ================================================================
+
   let supabaseResponse = NextResponse.next({
     request,
   });

@@ -381,7 +381,7 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 
-# App
+# App — IMPORTANTE: em produção usar www (sem www faz redirect 307 que o Mercado Pago não segue)
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 NODE_ENV=development
 
@@ -398,7 +398,7 @@ TWILIO_PHONE_NUMBER=+5598...
 # Cron (necessário na Fase 9)
 CRON_SECRET=
 
-# Auth OAuth (Fase 10)
+# Auth OAuth (Fase 10) — IMPORTANTE: usar www no domínio de produção
 NEXT_PUBLIC_AUTH_CALLBACK_URL=https://pousadaxangrilademorros.com.br/auth/callback
 
 # Modo Manutenção (Fase 11)
@@ -481,6 +481,7 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 12. **Fase 10.1 — Callback OAuth com propagação de cookies + domínio correto** — `app/auth/callback/route.ts` usa `createServerClient` diretamente (não o wrapper `createClient()`) e acumula os cookies via `setAll`, propagando-os no `NextResponse.redirect()`. Sem isso, a sessão é criada no Supabase mas os cookies se perdem no redirect, causando loop de login. O domínio de produção correto é `pousadaxangrilademorros.com.br` (não `pousadaxangrila.com.br`). Configurações externas (Google Cloud Console origens JS + Supabase Site URL + Redirect URLs) devem apontar para `pousadaxangrilademorros.com.br`. A variável `NEXT_PUBLIC_AUTH_CALLBACK_URL` no Vercel deve ser `https://pousadaxangrilademorros.com.br/auth/callback`.
 13. **Fase 10.2 — Verificação de telefone pós-OAuth sem substituir sessão** — O componente `telefone-verificacao.tsx` **NÃO DEVE** usar `supabase.auth.signInWithOtp()` / `supabase.auth.verifyOtp()` para verificar telefone pós-login social. Esses métodos criam uma nova sessão de telefone, destruindo a sessão Google ativa e causando: nome do cliente = número de telefone, perda do email, registros duplicados em `clientes_xngrl`. Solução: `app/api/auth/verificar-telefone/route.ts` envia SMS via Twilio Verify diretamente (quando `body.telefone` presente); `app/api/auth/completar-perfil-social/route.ts` verifica o código via Twilio e salva com email+nome da sessão ativa. A route `verificar-telefone` é dual-purpose: `{ email }` → check status (para auth-gate/login-email-form), `{ telefone }` → enviar OTP (para telefone-verificacao.tsx). SQL de limpeza manual necessário para registros duplicados criados antes da correção.
 14. **Modo Manutenção (Fase 11)** — `middleware.ts` contém bloco de manutenção no início da função `middleware`. Quando `MAINTENANCE_MODE=true` (env var Vercel), todas as rotas são reescritas para `/manutencao`. A página `app/manutencao/page.tsx` é standalone (sem layout raiz). Para ativar: definir `MAINTENANCE_MODE=true` no painel Vercel e fazer redeploy. Para desativar: remover a variável ou setar `false` e redeploy.
+15. **Webhook PIX — notification_url + busca híbrida + middleware (Fase 11.1)** — Três correções para o fluxo de pagamento PIX de reservas: (a) `notification_url` adicionada em `app/api/pagamentos/pix/gerar/route.ts` no `paymentClient.create()` — sem ela, o Mercado Pago não sabia para onde enviar o webhook. O arquivo de Day Use (`app/api/day-use/pix/gerar/route.ts`) já tinha essa propriedade. (b) `app/api/reservas/[id]/status/route.ts` corrigido com busca híbrida (telefone + email) — login via Google OAuth não populava `user.phone`, causando 404 no polling. (c) `middleware.ts` atualizado para incluir `/api/webhooks` em `ROTAS_PERMITIDAS_MANUTENCAO` — o Mercado Pago recebia 405 quando `MAINTENANCE_MODE=true`. Variáveis de ambiente corrigidas: `NEXT_PUBLIC_APP_URL` e `NEXT_PUBLIC_AUTH_CALLBACK_URL` devem sempre usar `https://www.pousadaxangrilademorros.com.br` (com www) em produção, pois o domínio sem www faz redirect 307 que o MP não segue.
 
 ---
 

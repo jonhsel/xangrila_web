@@ -21,11 +21,12 @@ export async function middleware(request: NextRequest) {
   const MAINTENANCE_MODE = process.env.MAINTENANCE_MODE === 'true';
 
   const ROTAS_PERMITIDAS_MANUTENCAO = [
-    '/manutencao',   // a própria página de manutenção
-    '/_next',        // assets estáticos do Next.js
-    '/favicon.ico',  // favicon
-    '/images',       // imagens públicas
-    '/fonts',        // fontes
+    '/manutencao',    // a própria página de manutenção
+    '/_next',         // assets estáticos do Next.js
+    '/favicon.ico',   // favicon
+    '/images',        // imagens públicas
+    '/fonts',         // fontes
+    '/api/webhooks',  // webhooks externos (Mercado Pago) precisam funcionar 24/7
   ];
 
   if (MAINTENANCE_MODE) {

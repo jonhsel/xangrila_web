@@ -245,6 +245,7 @@ export async function POST(request: NextRequest) {
           agora.getTime() + minutosValidos * 60 * 1000
         ).toISOString(),
         external_reference: reservaId,
+        notification_url: `${process.env.NEXT_PUBLIC_APP_URL}/api/webhooks/mercadopago`,
         payer: {
           email: emailMP,
           first_name: cliente.nome_cliente ?? 'Cliente',

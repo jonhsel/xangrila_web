@@ -119,6 +119,30 @@ async function processarWebhook(request: NextRequest): Promise<void> {
       return;
     }
 
+    // ============================================
+    // EFETIVAR BLOQUEIOS NA DISPONIBILIDADE_QUARTOS
+    // Converte bloqueios temporários em definitivos,
+    // ou recria se já expiraram (>30min entre criação e pagamento)
+    // ============================================
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: resultadoBloqueios, error: erroBloqueios } = await (admin.rpc as any)(
+        'efetivar_bloqueios_reserva',
+        { p_reserva_id: reservaId }
+      );
+
+      if (erroBloqueios) {
+        console.error('[Webhook MP] Erro ao efetivar bloqueios:', erroBloqueios);
+        // Não retornar erro — a reserva já foi confirmada
+        // Os bloqueios podem ser recriados manualmente via SQL se necessário
+      } else {
+        console.log(`[Webhook MP] ✅ Bloqueios efetivados para ${reservaId}:`, JSON.stringify(resultadoBloqueios));
+      }
+    } catch (bloqueioError) {
+      console.error('[Webhook MP] Exceção ao efetivar bloqueios:', bloqueioError);
+      // Não falhar o webhook por causa de erro de bloqueio
+    }
+
     // Atualizar pre_reservas
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: erroPreReserva } = await (admin.from('pre_reservas') as any)

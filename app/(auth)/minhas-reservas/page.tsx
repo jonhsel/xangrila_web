@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ReservaCard } from '@/components/features/reserva/reserva-card';
 import { Calendar, CalendarX, PlusCircle, Sun, Users } from 'lucide-react';
 import { formatarMoeda } from '@/lib/utils';
+import { POUSADA } from '@/lib/constants';
 
 export const dynamic = 'force-dynamic';
 
@@ -346,7 +347,7 @@ function DayUseCard({ dayUse }: { dayUse: any }) {
           <div className="mt-3">
             <Button variant="outline" className="w-full" asChild>
               <a
-                href={`https://wa.me/5598981519965?text=${encodeURIComponent(
+                href={`https://wa.me/${POUSADA.whatsapp}?text=${encodeURIComponent(
                   `Olá! Gostaria de informações sobre meu Day Use ${dayUse.reservation_code}`
                 )}`}
                 target="_blank"

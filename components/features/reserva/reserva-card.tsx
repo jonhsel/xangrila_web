@@ -2,6 +2,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatarMoeda, formatarData } from '@/lib/utils';
+import { POUSADA } from '@/lib/constants';
 import {
   Calendar,
   Users,
@@ -161,7 +162,7 @@ export function ReservaCard({ reserva, tipo }: ReservaCardProps) {
           {tipo === 'confirmada' && (
             <Button variant="outline" className="flex-1" asChild>
               <a
-                href={`https://wa.me/5598981672949?text=${encodeURIComponent(
+                href={`https://wa.me/${POUSADA.whatsapp}?text=${encodeURIComponent(
                   `Olá! Tenho a reserva #${reserva.reserva_id} e gostaria de informações.`
                 )}`}
                 target="_blank"

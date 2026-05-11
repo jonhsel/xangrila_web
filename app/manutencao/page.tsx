@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { POUSADA } from '@/lib/constants';
 
 export const metadata: Metadata = {
   title: 'Em Manutenção | Pousada Xangrilá',
@@ -185,7 +186,7 @@ export default function ManutencaoPage() {
           <div className="card-contato">
             <p>Para reservas ou informações</p>
             <a
-              href="https://wa.me/5598991178982"
+              href={POUSADA.whatsappLink}
               className="contato-link"
               target="_blank"
               rel="noopener noreferrer"

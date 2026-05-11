@@ -100,16 +100,29 @@ export default async function MinhasReservasPage() {
     new Date(p.expira_em) > new Date()
   );
 
-  // Filtrar day uses
-  const dayUsesAtivos = dayUses.filter((du: any) =>
-    (du.status === 'confirmed' || du.status === 'pending') &&
-    new Date(du.reservation_date + 'T23:59:59') >= hoje
-  );
+  // Filtrar day uses — pendentes só aparecem se expires_at ainda não passou
+  const agora = new Date();
 
-  const dayUsesConcluidos = dayUses.filter((du: any) =>
-    du.status === 'completed' ||
-    (du.status === 'confirmed' && new Date(du.reservation_date + 'T23:59:59') < hoje)
-  );
+  const dayUsesAtivos = dayUses.filter((du: any) => {
+    const dataFutura = new Date(du.reservation_date + 'T23:59:59') >= hoje;
+
+    if (du.status === 'confirmed') {
+      return dataFutura;
+    }
+
+    if (du.status === 'pending') {
+      const pixAindaValido = du.expires_at ? new Date(du.expires_at) > agora : true;
+      return dataFutura && pixAindaValido;
+    }
+
+    return false;
+  });
+
+  const dayUsesConcluidos = dayUses.filter((du: any) => {
+    if (du.status === 'completed') return true;
+    if (du.status === 'confirmed' && new Date(du.reservation_date + 'T23:59:59') < hoje) return true;
+    return false;
+  });
 
   const totalReservas = ativas.length + pendentes.length + concluidas.length + dayUsesAtivos.length + dayUsesConcluidos.length;
 

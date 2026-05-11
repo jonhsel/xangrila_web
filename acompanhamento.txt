@@ -1055,3 +1055,70 @@ completamente a tabela `day_use_reservations`.
 Total de fases concluídas: 11.3
 Período de desenvolvimento: 2026-03-25 a 2026-05-10 (46 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)
+
+---
+
+## ✅ CHECKLIST DA FASE 11.4 — Expiração Automática de Day Uses
+
+Início: 2026-05-10 | Conclusão: 2026-05-10 | Duração: 1 dia
+
+### Objetivo
+Corrigir bug crítico em que reservas de Day Use com `status = 'pending'` e
+`expires_at` já passado nunca eram expiradas. Diferente das pré-reservas de
+quartos (que possuem `expirar_prereservas_pendentes()` via pg_cron), não existia
+nenhum mecanismo de expiração para `day_use_reservations`. Resultado: Day Uses
+com PIX vencido continuavam aparecendo como "Aguardando Pagamento" na área do
+cliente por semanas/meses.
+
+### Causa raiz (três pontos)
+1. Banco: Nenhuma function SQL para expirar Day Uses automaticamente
+2. Cron: O cron existente só tratava `pre_reservas`, não `day_use_reservations`
+3. Frontend: Filtro `dayUsesAtivos` aceitava `status === 'pending'` sem checar `expires_at`
+
+### Pré-requisitos SQL (executados manualmente no Supabase)
+[x] Function `expirar_dayuses_pendentes()` criada — cancela pendentes com expires_at < NOW() ou reservation_date < CURRENT_DATE
+[x] pg_cron agendado: 'expirar-dayuses' a cada 5 minutos
+[x] SELECT expirar_dayuses_pendentes() — limpeza imediata dos dados existentes
+[x] Function `completar_dayuses_passados()` criada — marca confirmados com data passada como 'completed'
+[x] pg_cron agendado: 'completar-dayuses-passados' diariamente à meia-noite
+[x] SELECT completar_dayuses_passados() — limpeza imediata dos dados existentes
+
+### Arquivos modificados
+[x] app/api/cron/limpeza/prereservas/route.ts — chamada a expirar_dayuses_pendentes() + retorno JSON atualizado
+[x] app/(auth)/minhas-reservas/page.tsx — filtros dayUsesAtivos e dayUsesConcluidos corrigidos
+[x] CLAUDE.md — fase 11.4 registrada na tabela de status e na lista de correções aplicadas
+
+### Alterações realizadas
+
+#### app/api/cron/limpeza/prereservas/route.ts
+[x] Chamada a supabase.rpc('expirar_dayuses_pendentes') adicionada após expirar_prereservas_pendentes()
+[x] job_logs.detalhes atualizado para incluir { prereservas, dayuses }
+[x] Retorno JSON: { sucesso, prereservas, dayuses, executado_em }
+
+#### app/(auth)/minhas-reservas/page.tsx
+[x] dayUsesAtivos: pendentes só aparecem se expires_at > agora E reservation_date >= hoje
+[x] dayUsesConcluidos: apenas 'completed' ou 'confirmed' com data passada (pendentes expirados excluídos)
+
+### Build
+[x] npx tsc --noEmit — zero erros TypeScript
+
+### Decisões técnicas
+- Dois critérios de expiração na function SQL: expires_at < NOW() (PIX vencido) OU reservation_date < CURRENT_DATE (dia já passou)
+- Day Uses pendentes com PIX expirado NÃO aparecem em "Anteriores" — serão cancelados pelo cron em breve
+- Fallback no cron Vercel mantém a função mesmo se pg_cron falhar
+- completar_dayuses_passados() roda diariamente (não precisa ser frequente como a de expiração)
+
+---
+
+| **11.4** | **Expiração Automática de Day Uses**                    | 2026-05-10   | 2026-05-10   | 1    | ✅     | 8.6, 11.3             |
+| 11.4.1   |   SQL: function expirar_dayuses_pendentes() criada      | 2026-05-10   | 2026-05-10   | 1    | ✅     | 2.1                   |
+| 11.4.2   |   SQL: pg_cron expirar-dayuses (5 min)                  | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.4.1                |
+| 11.4.3   |   SQL: function completar_dayuses_passados() criada     | 2026-05-10   | 2026-05-10   | 1    | ✅     | 2.1                   |
+| 11.4.4   |   SQL: pg_cron completar-dayuses-passados (diário)      | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.4.3                |
+| 11.4.5   |   cron/prereservas/route.ts: chama expirar_dayuses      | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.4.1                |
+| 11.4.6   |   minhas-reservas/page.tsx: filtros corrigidos          | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.3.2                |
+| 11.4.7   |   npx tsc --noEmit — zero erros                        | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.4.5–11.4.6         |
+
+Total de fases concluídas: 11.4
+Período de desenvolvimento: 2026-03-25 a 2026-05-10 (46 dias corridos)
+Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)

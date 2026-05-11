@@ -22,15 +22,29 @@ export async function GET(request: NextRequest) {
 
     console.log('[Cron Limpeza] ✅ Resultado:', JSON.stringify(data));
 
+    // === EXPIRAR DAY USES PENDENTES ===
+    const { data: dataDayUse, error: errorDayUse } = await supabase.rpc('expirar_dayuses_pendentes');
+
+    if (errorDayUse) {
+      console.error('[Cron Limpeza] Erro ao expirar day uses:', errorDayUse);
+    } else {
+      console.log('[Cron Limpeza] ✅ Day Uses expirados:', JSON.stringify(dataDayUse));
+    }
+
     // Registrar execução no log
     await (supabase.from('job_logs') as any).insert({
       job_name: 'expirar_prereservas',
       status: 'success',
-      detalhes: data,
+      detalhes: { prereservas: data, dayuses: dataDayUse || null },
       duracao_ms: 0,
     });
 
-    return NextResponse.json(data);
+    return NextResponse.json({
+      sucesso: true,
+      prereservas: data,
+      dayuses: dataDayUse || null,
+      executado_em: new Date().toISOString(),
+    });
   } catch (error) {
     console.error('[Cron Limpeza] Erro geral:', error);
 

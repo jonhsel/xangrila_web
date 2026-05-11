@@ -995,5 +995,63 @@ eram deletados pelo pg_cron e nunca recriados como definitivos.
 
 ### Build
 [x] npm run build — zero erros TypeScript
-Período de desenvolvimento: 2026-03-25 a 2026-05-05 (41 dias corridos)
+
+| **11.2** | **Efetivar Bloqueios disponibilidade_quartos**         | 2026-05-08   | 2026-05-08   | 1    | ✅     | 6, 11.1                 |
+| 11.2.1   |   SQL: function efetivar_bloqueios_reserva() criada    | 2026-05-08   | 2026-05-08   | 1    | ✅     | 2.1                     |
+| 11.2.2   |   SQL: correção retroativa para reservas sem bloqueios | 2026-05-08   | 2026-05-08   | 1    | ✅     | 11.2.1                  |
+| 11.2.3   |   webhooks/mercadopago/route.ts: chama function SQL    | 2026-05-08   | 2026-05-08   | 1    | ✅     | 6.4                     |
+| 11.2.4   |   npm run build — zero erros                          | 2026-05-08   | 2026-05-08   | 1    | ✅     | 11.2.3                  |
+
+Período de desenvolvimento: 2026-03-25 a 2026-05-08 (44 dias corridos)
+Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)
+
+---
+
+## ✅ CHECKLIST DA FASE 11.3 — Day Use em "Minhas Reservas"
+
+Início: 2026-05-10 | Conclusão: 2026-05-10 | Duração: 1 dia
+
+### Objetivo
+Corrigir o bug em que o cliente realizava uma reserva de Day Use, pagava o PIX,
+mas ao acessar "Minhas Reservas" não via nenhum registro do Day Use.
+A página consultava apenas `reservas_confirmadas` e `pre_reservas`, ignorando
+completamente a tabela `day_use_reservations`.
+
+### Arquivo modificado
+[x] app/(auth)/minhas-reservas/page.tsx — único arquivo alterado
+
+### Alterações realizadas
+
+[x] Imports adicionados: CardContent, Badge, Calendar, Sun, Users, formatarMoeda
+[x] Select de clientes_xngrl atualizado para incluir telefonewhatsapp_cliente
+[x] Busca em day_use_reservations por phone_number (excluindo status = 'cancelled')
+[x] Filtros: dayUsesAtivos (futuros confirmed/pending) e dayUsesConcluidos (passados ou completed)
+[x] totalReservas atualizado para incluir day uses (tela "Nenhuma reserva" só aparece se tudo zerado)
+[x] TabsList: grid-cols-3 → grid-cols-4
+[x] TabsTrigger "Day Use" com contador adicionado
+[x] TabsContent "dayuse" com sub-seções "Próximos" e "Anteriores"
+[x] Componente DayUseCard: ícone sol, código (DU-XXXX), data formatada, total de pessoas,
+    detalhamento de isentos (idosos/PCD/crianças via JSON notes), valor total,
+    badge de status, botão WhatsApp para reservas pendentes
+[x] npm run build — ✅ Compiled successfully, zero erros TypeScript
+
+### Decisões técnicas
+- day_use_reservations NÃO usa cliente_id — busca feita por phone_number
+- Telefone: user.phone (OTP) OU cliente.telefonewhatsapp_cliente (OAuth/email+senha)
+- Day Uses cancelados não aparecem (filtro .neq('status', 'cancelled'))
+- Data formatada manualmente (split('-') + new Date(ano, mes-1, dia)) para evitar problema de fuso horário com date-only strings
+- DayUseCard é um Server Component helper (função no mesmo arquivo) — sem necessidade de arquivo novo
+
+---
+
+| **11.3** | **Day Use em "Minhas Reservas" (bug de visibilidade)**  | 2026-05-10   | 2026-05-10   | 1    | ✅     | 8.6, 11               |
+| 11.3.1   |   Busca day_use_reservations por phone_number           | 2026-05-10   | 2026-05-10   | 1    | ✅     | 8.6.3                 |
+| 11.3.2   |   Filtros: dayUsesAtivos + dayUsesConcluidos            | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.3.1                |
+| 11.3.3   |   totalReservas inclui day uses                         | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.3.2                |
+| 11.3.4   |   Tab "Day Use" (grid-cols-4, trigger, content)         | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.3.2                |
+| 11.3.5   |   Componente DayUseCard (código, data, pessoas, valor)  | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.3.1                |
+| 11.3.6   |   npm run build — zero erros                           | 2026-05-10   | 2026-05-10   | 1    | ✅     | 11.3.1–11.3.5         |
+
+Total de fases concluídas: 11.3
+Período de desenvolvimento: 2026-03-25 a 2026-05-10 (46 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)

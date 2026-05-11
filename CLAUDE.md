@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 11 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 11.3 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone. Fase 11.3: Day Use agora visível em "Minhas Reservas" (tab dedicada com DayUseCard).
 
 ---
 
@@ -77,6 +77,9 @@ app/globals.css
 | 10.1 | Correções Auth Híbrida (callback, domínio, cookies) | ✅ Concluída |
 | 10.2 | Correção Duplicação Auth Google (sessão + registros duplicados) | ✅ Concluída |
 | 11 | Modo Manutenção (on/off via env var MAINTENANCE_MODE) | ✅ Concluída |
+| 11.1 | Correção Webhook PIX (notification_url + busca híbrida + middleware) | ✅ Concluída |
+| 11.2 | Efetivar bloqueios disponibilidade_quartos após confirmação PIX | ✅ Concluída |
+| 11.3 | Day Use em "Minhas Reservas" (tab + DayUseCard) | ✅ Concluída |
 
 ---
 
@@ -484,6 +487,7 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 14. **Modo Manutenção (Fase 11)** — `middleware.ts` contém bloco de manutenção no início da função `middleware`. Quando `MAINTENANCE_MODE=true` (env var Vercel), todas as rotas são reescritas para `/manutencao`. A página `app/manutencao/page.tsx` é standalone (sem layout raiz). Para ativar: definir `MAINTENANCE_MODE=true` no painel Vercel e fazer redeploy. Para desativar: remover a variável ou setar `false` e redeploy.
 15. **Webhook PIX — notification_url + busca híbrida + middleware (Fase 11.1)** — Três correções para o fluxo de pagamento PIX de reservas: (a) `notification_url` adicionada em `app/api/pagamentos/pix/gerar/route.ts` no `paymentClient.create()` — sem ela, o Mercado Pago não sabia para onde enviar o webhook. O arquivo de Day Use (`app/api/day-use/pix/gerar/route.ts`) já tinha essa propriedade. (b) `app/api/reservas/[id]/status/route.ts` corrigido com busca híbrida (telefone + email) — login via Google OAuth não populava `user.phone`, causando 404 no polling. (c) `middleware.ts` atualizado para incluir `/api/webhooks` em `ROTAS_PERMITIDAS_MANUTENCAO` — o Mercado Pago recebia 405 quando `MAINTENANCE_MODE=true`. Variáveis de ambiente corrigidas: `NEXT_PUBLIC_APP_URL` e `NEXT_PUBLIC_AUTH_CALLBACK_URL` devem sempre usar `https://www.pousadaxangrilademorros.com.br` (com www) em produção, pois o domínio sem www faz redirect 307 que o MP não segue.
 16. **Efetivar bloqueios na disponibilidade_quartos (Fase 11.2)** — Após confirmação de pagamento via webhook do Mercado Pago, a function `efetivar_bloqueios_reserva()` é chamada para converter bloqueios temporários em definitivos (ou recriá-los se já expiraram). Sem isso, a tabela `disponibilidade_quartos` ficava vazia após a confirmação, pois os bloqueios temporários (30 min) eram deletados pelo pg_cron. A API de walk-in (`app/api/admin/reservas/criar/route.ts`) NÃO é afetada — ela já cria bloqueios definitivos diretamente.
+17. **Day Use em "Minhas Reservas" (Fase 11.3)** — `app/(auth)/minhas-reservas/page.tsx` agora consulta também `day_use_reservations`. A busca é feita por `phone_number` (não por `cliente_id`, que não existe na tabela). O telefone é obtido via `user.phone` (OTP) ou `cliente.telefonewhatsapp_cliente` (OAuth/email). O select de `clientes_xngrl` foi ampliado para incluir `telefonewhatsapp_cliente`. Day uses cancelados são filtrados com `.neq('status', 'cancelled')`. Nova tab "Day Use" com sub-seções "Próximos" (futuros/confirmed/pending) e "Anteriores" (passados/completed). Componente `DayUseCard` criado no mesmo arquivo (Server Component helper). A data é formatada manualmente via `split('-') + new Date(ano, mes-1, dia)` para evitar problemas de fuso horário com strings date-only.
 
 ---
 

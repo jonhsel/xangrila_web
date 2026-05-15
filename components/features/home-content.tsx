@@ -57,13 +57,13 @@ const testimonials = [
 ];
 
 const galeriaFotos = [
-  { src: '/images/galeria/piscina.svg', alt: 'Piscina', caption: 'Piscina' },
-  { src: '/images/galeria/jardim.svg', alt: 'Jardim', caption: 'Jardins' },
+  { src: '/images/galeria/restaurante.svg', alt: 'Restaurante', caption: 'Restaurante' },
+  { src: '/images/galeria/rio-una.svg', alt: 'Rio Una', caption: 'Rio Una' },
   { src: '/images/galeria/recepcao.svg', alt: 'Recepção', caption: 'Recepção' },
   { src: '/images/galeria/cafe.svg', alt: 'Café da manhã', caption: 'Café da manhã' },
   { src: '/images/galeria/area-externa.svg', alt: 'Área externa', caption: 'Área externa' },
-  { src: '/images/galeria/churrasqueira.svg', alt: 'Churrasqueira', caption: 'Churrasqueira' },
-  { src: '/images/galeria/estacionamento.svg', alt: 'Estacionamento', caption: 'Estacionamento' },
+  { src: '/images/galeria/natureza.svg', alt: 'Natureza', caption: 'Natureza' },
+  { src: '/images/galeria/aconchego.svg', alt: 'Aconchego', caption: 'Aconchego' },
   { src: '/images/galeria/noturna.svg', alt: 'Vista noturna', caption: 'Vista noturna' },
 ];
 

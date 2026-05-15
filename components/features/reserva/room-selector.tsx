@@ -53,6 +53,7 @@ export function RoomSelector() {
     pessoas: pessoasSelecionadas,
     setQuarto,
     setStep,
+    setDatas,
   } = useReserva();
 
   const [disponibilidade, setDisponibilidade] = useState<DisponibilidadeResponse | null>(null);
@@ -77,6 +78,12 @@ export function RoomSelector() {
       if (!resp.ok) {
         const err = await resp.json();
         toast.error(err.erro || 'Erro ao buscar disponibilidade.');
+
+        // Se período bloqueado (422), limpar datas e voltar ao calendário
+        if (resp.status === 422) {
+          setDatas('', '', 0);
+          setStep(1);
+        }
         return;
       }
       const dados: DisponibilidadeResponse = await resp.json();
@@ -154,7 +161,12 @@ export function RoomSelector() {
     return (
       <div className="mx-auto max-w-2xl text-center space-y-4 py-12">
         <p className="text-muted-foreground">Não foi possível carregar a disponibilidade.</p>
-        <Button onClick={buscarDisponibilidade}>Tentar novamente</Button>
+        <div className="flex justify-center gap-3">
+          <Button variant="outline" onClick={() => { setDatas('', '', 0); setStep(1); }}>
+            ← Escolher novas datas
+          </Button>
+          <Button onClick={buscarDisponibilidade}>Tentar novamente</Button>
+        </div>
       </div>
     );
   }

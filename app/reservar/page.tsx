@@ -22,7 +22,7 @@ interface PendingProfile {
 }
 
 export default function ReservarPage() {
-  const { autenticado, step, setAutenticado } = useReserva();
+  const { autenticado, step, dataCheckin, dataCheckout, setAutenticado, setStep, setDatas } = useReserva();
   const [verificando, setVerificando] = useState(true);
   const [perfilPendente, setPerfilPendente] = useState<PendingProfile | null>(null);
 
@@ -33,6 +33,17 @@ export default function ReservarPage() {
     verificarSessao();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Guard: se step >= 2 mas sem datas válidas, voltar para step 1
+  // Previne estado corrompido no sessionStorage de sessões anteriores
+  useEffect(() => {
+    if (verificando) return;
+    if (step >= 2 && (!dataCheckin || !dataCheckout)) {
+      setDatas('', '', 0);
+      setStep(1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [verificando]);
 
   async function verificarSessao() {
     try {

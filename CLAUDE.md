@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 11.4 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone. Fase 11.3: Day Use agora visível em "Minhas Reservas" (tab dedicada com DayUseCard). Fase 11.4: Expiração automática de Day Uses (functions SQL `expirar_dayuses_pendentes` + `completar_dayuses_passados`, pg_cron, filtro frontend corrigido).
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 11.4 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone. Fase 11.3: Day Use agora visível em "Minhas Reservas" (tab dedicada com DayUseCard). Fase 11.4: Expiração automática de Day Uses (functions SQL `expirar_dayuses_pendentes` + `completar_dayuses_passados`, pg_cron, filtro frontend corrigido). Fase 11.5: Fix wizard de reservas — rollback automático ao step 1 quando API retorna 422 (período bloqueado), guard de hidratação no page.tsx para sessão corrompida no sessionStorage.
 
 ---
 
@@ -81,6 +81,7 @@ app/globals.css
 | 11.2 | Efetivar bloqueios disponibilidade_quartos após confirmação PIX | ✅ Concluída |
 | 11.3 | Day Use em "Minhas Reservas" (tab + DayUseCard) | ✅ Concluída |
 | 11.4 | Expiração Automática de Day Uses (function SQL + cron + filtro frontend) | ✅ Concluída |
+| 11.5 | Fix: Wizard de Reservas trava em período bloqueado (rollback automático) | ✅ Concluída |
 
 ---
 
@@ -492,6 +493,7 @@ Estas correções foram aplicadas pelo Claude Code durante as Fases 4 e 5:
 18. **Expiração Automática de Day Uses (Fase 11.4)** — Duas functions SQL criadas no Supabase: `expirar_dayuses_pendentes()` (cancela pendentes com `expires_at < NOW()` ou `reservation_date < CURRENT_DATE`, roda a cada 5 min via pg_cron) e `completar_dayuses_passados()` (marca confirmados com data passada como `completed`, roda diariamente à meia-noite). Cron Vercel `app/api/cron/limpeza/prereservas/route.ts` também chama `expirar_dayuses_pendentes()` como fallback. Filtro `dayUsesAtivos` em `app/(auth)/minhas-reservas/page.tsx` corrigido: pendentes só aparecem se `expires_at > agora`.
 
  — `app/(auth)/minhas-reservas/page.tsx` agora consulta também `day_use_reservations`. A busca é feita por `phone_number` (não por `cliente_id`, que não existe na tabela). O telefone é obtido via `user.phone` (OTP) ou `cliente.telefonewhatsapp_cliente` (OAuth/email). O select de `clientes_xngrl` foi ampliado para incluir `telefonewhatsapp_cliente`. Day uses cancelados são filtrados com `.neq('status', 'cancelled')`. Nova tab "Day Use" com sub-seções "Próximos" (futuros/confirmed/pending) e "Anteriores" (passados/completed). Componente `DayUseCard` criado no mesmo arquivo (Server Component helper). A data é formatada manualmente via `split('-') + new Date(ano, mes-1, dia)` para evitar problemas de fuso horário com strings date-only.
+19. **Fix: Wizard de Reservas trava em período bloqueado (Fase 11.5)** — Quando a API `GET /api/disponibilidade` retorna HTTP 422 (período não disponível), o `room-selector.tsx` agora executa rollback automático: chama `setDatas('', '', 0)` + `setStep(1)`, retornando o cliente ao calendário. Antes disso, o store Zustand ficava corrompido no `sessionStorage` com datas inválidas e `step: 2`, travando o wizard mesmo após F5. Correções aplicadas em 2 arquivos, 5 pontos cirúrgicos: (a) `room-selector.tsx` — `setDatas` adicionado ao destructuring, rollback no erro 422, botão "← Escolher novas datas" no estado de erro visual; (b) `app/reservar/page.tsx` — destructuring expandido, guard de hidratação via `useEffect([verificando])` que força `step: 1` se `step >= 2` mas sem datas válidas. Não usar `reset()` para preservar a autenticação do cliente.
 
 ---
 

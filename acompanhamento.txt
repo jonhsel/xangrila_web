@@ -1122,3 +1122,62 @@ cliente por semanas/meses.
 Total de fases concluídas: 11.4
 Período de desenvolvimento: 2026-03-25 a 2026-05-10 (46 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)
+---
+
+## ✅ CHECKLIST DA FASE 11.5 — Fix: Wizard de Reservas Trava em Período Bloqueado
+
+Início: 2026-05-15 | Conclusão: 2026-05-15 | Duração: 1 dia
+
+### Objetivo
+Corrigir bug em que o wizard de reservas travava permanentemente quando o cliente
+tentava selecionar datas em um período com `periodos_reserva.ativo = false`.
+O store Zustand (sessionStorage) ficava corrompido com datas inválidas e `step: 2`,
+fazendo o `room-selector.tsx` chamar a API com período bloqueado em loop, mesmo
+após F5.
+
+### Causa raiz
+A função `avancar()` em `date-selector.tsx` persiste datas + step ANTES da validação
+da API. A validação acontece no `room-selector.tsx` ao montar (chama GET /api/disponibilidade).
+Quando a API retorna 422, o store já estava corrompido e o rollback não existia.
+
+### Arquivos modificados
+[x] components/features/reserva/room-selector.tsx — 3 modificações
+[x] app/reservar/page.tsx — 2 modificações
+
+### Alterações realizadas
+
+#### components/features/reserva/room-selector.tsx
+[x] Mod A — `setDatas` adicionado ao destructuring de `useReserva()`
+[x] Mod B — Bloco `if (!resp.ok)`: rollback automático quando status === 422
+    (chama `setDatas('', '', 0)` + `setStep(1)` antes do return)
+[x] Mod C — Estado de erro visual: dois botões ("← Escolher novas datas" + "Tentar novamente")
+    em vez de apenas "Tentar novamente"
+
+#### app/reservar/page.tsx
+[x] Mod A — Destructuring expandido: adicionado `dataCheckin`, `dataCheckout`, `setStep`, `setDatas`
+[x] Mod B — Guard de hidratação: `useEffect([verificando])` que força step: 1
+    se `step >= 2 && (!dataCheckin || !dataCheckout)` ao terminar `verificarSessao()`
+
+### Build
+[x] npx tsc --noEmit — zero erros TypeScript
+
+### Decisões técnicas
+- NÃO usar `reset()` no rollback — preserva autenticação (`clienteId`, `clienteNome`, `autenticado`)
+- `setDatas('', '', 0)` usa strings vazias; guard em page.tsx trata null/undefined/'' com `!dataCheckin`
+- Guard usa `verificando` como dependência única (não step/datas) para rodar uma vez após hidratação,
+  evitando loops no fluxo normal — mesmo padrão do useEffect de verificarSessao() já existente
+- date-selector.tsx NÃO foi modificado (não chama API; rollback pertence a quem recebe o erro)
+
+---
+
+| **11.5** | **Fix: Wizard trava em período bloqueado (rollback)**   | 2026-05-15   | 2026-05-15   | 1    | ✅     | 11.4                  |
+| 11.5.1   |   room-selector: setDatas no destructuring              | 2026-05-15   | 2026-05-15   | 1    | ✅     | —                     |
+| 11.5.2   |   room-selector: rollback automático no erro 422        | 2026-05-15   | 2026-05-15   | 1    | ✅     | 11.5.1                |
+| 11.5.3   |   room-selector: botão "← Escolher novas datas"        | 2026-05-15   | 2026-05-15   | 1    | ✅     | 11.5.1                |
+| 11.5.4   |   page.tsx: destructuring expandido                     | 2026-05-15   | 2026-05-15   | 1    | ✅     | —                     |
+| 11.5.5   |   page.tsx: guard de hidratação useEffect               | 2026-05-15   | 2026-05-15   | 1    | ✅     | 11.5.4                |
+| 11.5.6   |   npx tsc --noEmit — zero erros                        | 2026-05-15   | 2026-05-15   | 1    | ✅     | 11.5.1–11.5.5         |
+
+Total de fases concluídas: 11.5
+Período de desenvolvimento: 2026-03-25 a 2026-05-15 (51 dias corridos)
+Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)

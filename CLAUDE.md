@@ -1,7 +1,7 @@
 # Pousada Xangrilá — Sistema Web (`xangrila_web`)
 
 ## Visão Geral
-Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 11.4 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone. Fase 11.3: Day Use agora visível em "Minhas Reservas" (tab dedicada com DayUseCard). Fase 11.4: Expiração automática de Day Uses (functions SQL `expirar_dayuses_pendentes` + `completar_dayuses_passados`, pg_cron, filtro frontend corrigido). Fase 11.5: Fix wizard de reservas — rollback automático ao step 1 quando API retorna 422 (período bloqueado), guard de hidratação no page.tsx para sessão corrompida no sessionStorage.
+Sistema web para gerenciamento da Pousada Xangrilá (Morros, São Luís - MA), desenvolvido com Next.js, TypeScript, Tailwind CSS, Shadcn/ui e Supabase. Fases 1 a 12 concluídas. Sistema em produção em https://pousadaxangrilademorros.com.br. A fase 10 (Autenticação Híbrida), fase 10.1 (Correções Auth) e fase 10.2 (Correção Duplicação Auth Google) estão concluídas: Google OAuth + Email/Senha + OTP, sem duplicação de registros e sem perda da sessão Google na verificação de telefone. Fase 11.3: Day Use agora visível em "Minhas Reservas" (tab dedicada com DayUseCard). Fase 11.4: Expiração automática de Day Uses (functions SQL `expirar_dayuses_pendentes` + `completar_dayuses_passados`, pg_cron, filtro frontend corrigido). Fase 11.5: Fix wizard de reservas — rollback automático ao step 1 quando API retorna 422 (período bloqueado), guard de hidratação no page.tsx para sessão corrompida no sessionStorage. Fase 12: Página estática `/sobre` com 6 seções baseadas no regulamento oficial da pousada (novembro 2025).
 
 ---
 
@@ -82,6 +82,7 @@ app/globals.css
 | 11.3 | Day Use em "Minhas Reservas" (tab + DayUseCard) | ✅ Concluída |
 | 11.4 | Expiração Automática de Day Uses (function SQL + cron + filtro frontend) | ✅ Concluída |
 | 11.5 | Fix: Wizard de Reservas trava em período bloqueado (rollback automático) | ✅ Concluída |
+| 12 | Página "Sobre" (estática, 6 seções, conteúdo do regulamento) | ✅ Concluída |
 
 ---
 
@@ -97,6 +98,7 @@ xangrila_web/
 │   │   ├── page.tsx                  # Landing page
 │   │   ├── acomodacoes/page.tsx      # Fase 7.5 — Página de acomodações com galeria e regras
 │   │   ├── contato/page.tsx          # Formulário → WhatsApp
+│   │   ├── sobre/page.tsx            # Fase 12 — Página "Sobre" (Server Component + metadata)
 │   │   ├── day-use/page.tsx          # Placeholder + CTA
 │   │   ├── loading.tsx               # Skeleton animate-pulse
 │   │   └── error.tsx                 # Com reset()
@@ -156,6 +158,7 @@ xangrila_web/
 │       ├── hero-carousel.tsx         # Fase 7.5 — Slideshow automático no hero
 │       ├── photo-gallery.tsx         # Fase 7.5 — Grid de fotos com lightbox
 │       ├── acomodacoes-content.tsx   # Fase 7.5 — Conteúdo da página /acomodacoes
+│       ├── sobre-content.tsx         # Fase 12 — 6 seções da página /sobre (Client Component)
 │       ├── whatsapp-button.tsx       # Botão flutuante
 │       ├── auth/                     # Fase 10 — Componentes de autenticação híbrida
 │       │   ├── auth-tabs.tsx         # Fase 10 — Tabs: Google | Email | Telefone

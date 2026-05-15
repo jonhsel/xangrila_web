@@ -1181,3 +1181,67 @@ Quando a API retorna 422, o store já estava corrompido e o rollback não existi
 Total de fases concluídas: 11.5
 Período de desenvolvimento: 2026-03-25 a 2026-05-15 (51 dias corridos)
 Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)
+
+---
+
+## ✅ CHECKLIST DA FASE 12 — Página "Sobre"
+
+Início: 2026-05-15 | Conclusão: 2026-05-15 | Duração: 1 dia
+
+### Objetivo
+Criar a página estática `/sobre` com conteúdo baseado no regulamento oficial da
+pousada (novembro 2025). Página pública, sem autenticação, sem chamadas a APIs
+ou banco de dados. 6 seções: Hero, Quem Somos, Acomodações & Preços,
+Comodidades & Serviços, Políticas e CTA Final.
+
+### Arquivos criados
+[x] app/(public)/sobre/page.tsx — Server Component com metadata SEO + OpenGraph
+[x] components/features/sobre-content.tsx — Client Component com as 6 seções completas
+
+### Arquivos verificados (sem alteração necessária)
+[x] lib/constants/pousada.ts — ROUTES.sobre: '/sobre' já existia
+[x] components/layout/header.tsx — link "Sobre" já apontava para ROUTES.sobre
+
+### Alterações realizadas
+
+#### app/(public)/sobre/page.tsx
+[x] Server Component (sem 'use client') para exportar metadata
+[x] metadata: title, description, keywords, openGraph com URL de produção
+[x] Renderiza <SobreContent /> — sem lógica adicional
+
+#### components/features/sobre-content.tsx
+[x] 'use client' — componente de apresentação
+[x] Ícones importados de lucide-react: Home, Waves, Utensils, Wifi, TreePine,
+    Star, Clock, CreditCard, Users, Shield, ChevronRight, MapPin, Baby,
+    AlertCircle, CheckCircle2, Sailboat
+[x] Sailboat verificado como disponível no lucide-react do projeto (node check)
+[x] Instagram NÃO usado (não existe no lucide-react v1.6.0) — SVG inline no CTAFinal
+[x] Seção 1 HeroSobre: fundo #1a3a2a, badge, h1, linha decorativa
+[x] Seção 2 QuemSomos: 4 StatCards (2 casas, 9 chalés, ~40 hóspedes, 7 caiaques)
+[x] Seção 3 AcomodacoesPrecos: 2 casas (R$1.000) + 9 chalés (R$350–R$600)
+[x] Seção 4 ComodidadesServicos: 6 itens (Wi-Fi, café, caiaques, quadriciclo, quiosque, limpeza)
+[x] Seção 5 Politicas: 6 cards (check-in/out, pagamento, cancelamentos, regras, crianças, higiene)
+[x] Seção 6 CTAFinal: fundo #1a3a2a, botões Reservar + Contato, link Instagram SVG
+
+### Build
+[x] npm run build — zero erros TypeScript, /sobre gerada como rota estática (○)
+
+### Decisões técnicas
+- Página 100% estática: sem useEffect, sem fetch, sem Supabase
+- Todos os valores (preços, capacidades, horários, regras) extraídos do Regulamento
+  da Pousada Xangrilá — novembro 2025 — não alterar
+- Sailboat usado para ícone de caiaques (confirmado disponível na versão instalada)
+- Sub-componentes (StatCard, AcomodacaoCard, ComodidadeItem, PoliticaItem) definidos
+  no mesmo arquivo — sem necessidade de arquivos separados
+
+---
+
+| **12**   | **Página "Sobre" (estática)**                           | 2026-05-15   | 2026-05-15   | 1    | ✅     | —                     |
+| 12.1     |   app/(public)/sobre/page.tsx — Server Component + SEO  | 2026-05-15   | 2026-05-15   | 1    | ✅     | —                     |
+| 12.2     |   sobre-content.tsx — 6 seções completas               | 2026-05-15   | 2026-05-15   | 1    | ✅     | 12.1                  |
+| 12.3     |   ROUTES.sobre verificado (já existia)                  | 2026-05-15   | 2026-05-15   | 1    | ✅     | —                     |
+| 12.4     |   npm run build — zero erros, rota estática            | 2026-05-15   | 2026-05-15   | 1    | ✅     | 12.1–12.2             |
+
+Total de fases concluídas: 12
+Período de desenvolvimento: 2026-03-25 a 2026-05-15 (51 dias corridos)
+Legenda: ✅ Concluído | 🚧 Em andamento | ⬜ Pendente (ação manual)
